@@ -73,6 +73,17 @@ function verify_partitions() {
     echo "Verification passed. Proceeding to filesystem creation..."
 }
 
+function download() {
+    local url="$1"
+    local output="$2"
+    wget -q --show-progress -O "$output" "$url" || curl -fLo "$output" "$url"
+}
+
+function download_stdout() {
+    local url="$1"
+    wget -qO- "$url" || curl -fsSL "$url"
+}
+
 echo "Validating configuration..."
 validate_variable "EFI_DISK"
 validate_variable "ROOT_DISK"
@@ -206,4 +217,127 @@ function disk_format() {
         mount -t btrfs -o defaults,noatime,compress=zstd,subvol=$sub "/dev/mapper/$LUKS_ROOT_NAME" /mnt/gentoo/$sub
     done
 
+}
+
+function download_stage3() {
+
+	local STAGE3_BASENAME_FINAL
+	if [[ ("$GENTOO_ARCH" == "amd64" && "$STAGE3_VARIANT" == *x32*) || ("$GENTOO_ARCH" == "x86" && -n "$GENTOO_SUBARCH") ]]; then
+		STAGE3_BASENAME_FINAL="$STAGE3_BASENAME_CUSTOM"
+	else
+		STAGE3_BASENAME_FINAL="$STAGE3_BASENAME"
+	fi
+
+	local STAGE3_RELEASES="$GENTOO_MIRROR/releases/$GENTOO_ARCH/autobuilds/current-$STAGE3_BASENAME_FINAL/"
+
+	# Download upstream list of files
+	CURRENT_STAGE3="$(download_stdout "$STAGE3_RELEASES")" \
+		|| { echo "Could not retrieve list of tarballs"; exit 1;}
+	# Decode urlencoded strings
+	CURRENT_STAGE3=$(python3 -c 'import sys, urllib.parse; print(urllib.parse.unquote(sys.stdin.read()))' <<< "$CURRENT_STAGE3")
+	# Parse output for correct filename
+	CURRENT_STAGE3="$(grep -o "\"${STAGE3_BASENAME_FINAL}-[0-9A-Z]*.tar.xz\"" <<< "$CURRENT_STAGE3" \
+		| sort -u | head -1)" \
+		|| { echo "Could not parse list of tarballs"; exit 1;}
+	# Strip quotes
+	CURRENT_STAGE3="${CURRENT_STAGE3:1:-1}"
+	# File to indiciate successful verification
+	CURRENT_STAGE3_VERIFIED="${CURRENT_STAGE3}.verified"
+
+	# Download file if not already downloaded
+	if [[ -e $CURRENT_STAGE3_VERIFIED ]]; then
+		einfo "$STAGE3_BASENAME_FINAL tarball already downloaded and verified"
+	else
+		einfo "Downloading $STAGE3_BASENAME_FINAL tarball"
+		download "$STAGE3_RELEASES/${CURRENT_STAGE3}" "${CURRENT_STAGE3}"
+		download "$STAGE3_RELEASES/${CURRENT_STAGE3}.DIGESTS" "${CURRENT_STAGE3}.DIGESTS"
+
+		# Import gentoo keys
+		einfo "Importing gentoo gpg key"
+		local GENTOO_GPG_KEY="$TMP_DIR/gentoo-keys.gpg"
+		download "https://gentoo.org/.well-known/openpgpkey/hu/wtktzo4gyuhzu8a4z5fdj3fgmr1u6tob?l=releng" "$GENTOO_GPG_KEY" \
+			|| { echo "Could not retrieve gentoo gpg key"; exit 1;}
+		gpg --quiet --import < "$GENTOO_GPG_KEY" \
+			|| { echo "Could not import gentoo gpg key"; exit 1;}
+
+		# Verify DIGESTS signature
+		einfo "Verifying tarball signature"
+		gpg --quiet --verify "${CURRENT_STAGE3}.DIGESTS" \
+			|| { echo "Signature of '${CURRENT_STAGE3}.DIGESTS' invalid!"; exit 1;}
+
+		# Check hashes
+        einfo "Verifying tarball integrity"
+        
+        # 1. Isolate the SHA512 block, find the tar.xz line, and extract ONLY the raw alphanumeric hash
+        raw_hash=$(grep -A 1 'SHA512' "${CURRENT_STAGE3}.DIGESTS" | grep 'tar.xz$' | head -n 1 | awk '{print $1}')
+        
+        # 2. Reconstruct the exact string sha512sum expects: "<hash>  <exact_filename>" (MUST be two spaces!)
+        clean_digest="${raw_hash}  ${CURRENT_STAGE3}"
+        sha512sum --check <<< "$clean_digest" \
+            || { echo "Checksum mismatch! sha512sum"; exit 1;}
+	fi
+
+    echo "Extracting Stage 3 tarball"
+    tar xpvf "${CURRENT_STAGE3}" --xattrs-include='*.*' --numeric-owner -C /mnt/gentoo \
+        || { echo "Failed to extract $STAGE3_FILENAME to /mnt/gentoo"; exit 1; }
+    
+    echo "Stage 3 tarball extraction completed"
+
+}
+
+function config_system_outside_chroot() {
+    
+    ROOT_DEV=$(blkid -L BTROOT)
+    if [[ -z "$ROOT_DEV" ]]; then
+        echo "No partition with LABEL=BTROOT found. Exiting..."
+        exit 1
+    fi
+    echo "Found BTROOT at $ROOT_DEV"
+
+    echo "Editing fstab" 
+    cat << EOF > /mnt/gentoo/etc/fstab || { echo "Failed to edit fstab with EOF"; exit 1; }
+#Swap
+/dev/mapper/cryptswap   none    swap    sw                                           0 0
+
+#Root
+LABEL=BTROOT    /       btrfs   defaults,noatime,compress=zstd,subvol=activeroot     0 0
+LABEL=BTROOT    /home   btrfs   defaults,noatime,compress=zstd,subvol=home           0 0
+LABEL=BTROOT    /etc    btrfs   defaults,noatime,compress=zstd,subvol=etc            0 0
+LABEL=BTROOT    /var    btrfs   defaults,noatime,compress=zstd,subvol=var            0 0
+LABEL=BTROOT    /log    btrfs   defaults,noatime,compress=zstd,subvol=log            0 0
+LABEL=BTROOT    /tmp    btrfs   defaults,noatime,nosuid,nodev,noexec,compress=zstd,subvol=tmp    0 0
+EOF
+
+    echo "fstab set"
+
+    echo "Copying DNS info to /mnt/gentoo/etc/"
+    cp --dereference /etc/resolv.conf /mnt/gentoo/etc/
+
+    echo "setting up loclale.gen"
+    sed -i "s/#$LOCALE/$LOCALE/g" /mnt/gentoo/etc/locale.gen
+    # If dualboot uncomment below
+    # sed -i "s/clock=\"UTC\"/clock=\"local\"/g" ./etc/conf.d/hwclock
+    echo "Changing to keyboard laytout"
+    sed -i "s/keymap=\"us\"/keymaps=\"$KEYMAP\"/g" /mnt/gentoo/etc/conf.d/keymaps
+    echo "Setting lang and lc_collate"
+    echo 'LANG="en_US.UTF-8"' >> /mnt/gentoo/etc/locale.conf
+    echo 'LC_COLLATE="C.UTF-8"' >> /mnt/gentoo/etc/locale.conf
+    echo "Setting timezone"
+    echo "$TIMEZONE" > /mnt/gentoo/etc/timezone
+
+    echo "Succesfully configure basic system"
+
+}
+
+function config_portage() {
+
+    echo "copying over portage from install to /mnt/gentoo/etc/portage/"
+    echo "Copying make.conf"
+    cp ~/gentoo-install/portage/make.conf /mnt/gentoo/etc/portage/  \
+        || { echo "Failed to copy over make.conf"; exit 1;}
+    echo "Copying package.use folder"
+    cp ~/gentoo-install/portage/package.use/* /mnt/gentoo/etc/portage/package.use \
+        || { echo "Failed to copy over portage/package.use/*"; exit 1;}
+
+    
 }
