@@ -1,0 +1,113 @@
+#!/bin/bash
+set -uo pipefail
+
+
+################################################
+# Initialize script environment
+
+# Find the directory this script is stored in. (from: http://stackoverflow.com/questions/59895)
+function get_source_dir() {
+	local source="${BASH_SOURCE[0]}"
+	while [[ -h $source ]]
+	do
+		local tmp
+		tmp="$(cd -P "$(dirname "${source}")" && pwd)"
+		source="$(readlink "${source}")"
+		[[ $source != /* ]] && source="${tmp}/${source}"
+	done
+
+	echo -n "$(realpath "$(dirname "${source}")")"
+}
+
+source "$GENTOO_INSTALL_REPO_DIR/scripts/fulldisk_encryption.sh"
+source "$GENTOO_INSTALL_REPO_DIR/scripts/main.sh"
+
+trap 'kill "$GENTOO_INSTALL_REPO_SCRIPT_PID"' INT
+
+ACTION=""
+CONFIG="$GENTOO_INSTALL_REPO_DIR/gentoo.conf"
+
+while [[ $# -gt 0 ]]; do
+	case "$1" in
+		""|"help"|"--help"|"-help"|"-h")
+			echo "Usage: $0 [opts]... <action>"
+			echo "Performs a minimal gentoo installation. See https://github.com/oddlama/gentoo-install"
+			echo "for more information. If the configuration file does not exist, the configurator will"
+			echo "be started instead."
+			echo ""
+			echo "Options:"
+			echo "  -c, --config <CONFIG>         Use the given configuration file instead of the default"
+			echo "                                  location (gentoo.conf). Applies to installation as well"
+			echo "                                  as initial configuration in case it doesn't exist."
+			echo ""
+			echo "Actions:"
+			echo "  -i, --install                 Installs gentoo as configured. This is the default mode,"
+			echo "                                  if the given configuration file exists."
+			echo "  -R, --chroot <DIR> [CMD...]   Chroot into an existing system. The root filesystem"
+			echo "                                  must already be mounted under DIR. All required special"
+			echo "                                  filesystems will be mounted inside, and unmounted when"
+			echo "                                  the chroot exits."
+			exit 0
+			;;
+		"-c"|"--config")
+			[[ -f "$2" ]] \
+				|| { echo "Config file not found: '$2'"; exit 1; }
+			CONFIG="$(cd "$ACTUAL_WORKING_DIRECTORY" && realpath --relative-to="$GENTOO_INSTALL_REPO_DIR" "$2" 2>/dev/null)" || { echo "Could not determine realpath to config"; exit 1; }
+			;;
+		"-R"|"--chroot")
+			[[ -z $ACTION ]] || { echo "Multiple actions given"; exit 1; }
+			ACTION="chroot"
+			CHROOT_DIR="$2"
+			[[ -e "$CHROOT_DIR" ]] || { echo "Chroot directory not found: '$CHROOT_DIR'"; exit 1; }
+			shift
+			;;
+		"-i"|"--install")
+			[[ -z $ACTION ]] || { echo "Multiple actions given" exit 1; }
+			ACTION="install"
+			;;
+		"__install_gentoo_in_chroot")
+			ACTION="__install_gentoo_in_chroot"
+			;;
+		*) { echo "Invalid option '$1'"; exit 1; } ;;
+	esac
+	shift
+done
+
+# Check configuration location
+[[ -z "${CONFIG%%"$GENTOO_INSTALL_REPO_DIR"*}" ]] \
+	|| { echo "Configuration file must be inside the installation directory. This is needed so it is accessible from within the chroot environment."; exit 1; }
+
+if [[ -z "$ACTION" ]]; then
+	if [[ -e "$CONFIG" ]]; then
+		# Default if configuration exists: Run installer
+		ACTION="install"
+	else
+		# Default if configuration does not exist: Run configurator, and exit afterwards.
+		echo "You have not created a gentoo.conf. Starting configurator instead of installing."
+		exec "$GENTOO_INSTALL_REPO_DIR/configure" "$CONFIG"
+	fi
+fi
+
+if [[ "$ACTION" != "chroot" ]]; then
+	# Load config if we aren't just chrooting
+	[[ -e "$CONFIG" ]] \
+		 || { echo "Configuration file '$CONFIG' does not exist. To run the configurator, omit '-i' flag or run ./configure"; exit 1; }
+	# shellcheck disable=SC1090
+	source "$CONFIG" || { echo "Could not source config"; exit 1; }
+	[[ $I_HAVE_READ_AND_EDITED_THE_CONFIG_PROPERLY == "true" ]] \
+		|| { echo "You have not properly read the config. Edit the config file and set I_HAVE_READ_AND_EDITED_THE_CONFIG_PROPERLY=true to continue."; exit 1; }
+
+	preprocess_config
+fi
+
+[[ $EUID == 0 ]] \
+	|| die "Must be root"
+
+mkdir_or_die 0755 "$TMP_DIR"
+
+case "$ACTION" in
+	"chroot")  main_chroot "$CHROOT_DIR" "$@" ;;
+	"install") main_install "$@" ;;
+	"__install_gentoo_in_chroot") main_install_gentoo_in_chroot "$@" ;;
+	*) { echo "Invalid action '$ACTION'" ; exit 1; } ;;
+esac

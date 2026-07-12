@@ -1,104 +1,7 @@
 #!/bin/bash
 
-# Ensure the script run as root
-if [ "$(id -u)" != "0" ]; then
-    echo "This script must be run as root!"
-    exit 1
-fi
-
-# 2. Load the configuration file
-CONFIG_FILE="gentoo.conf"
-if [ ! -f "$CONFIG_FILE" ]; then
-    echo "Error: Configuration file '$CONFIG_FILE' not found in the current directory."
-    exit 1
-fi
-
-source "$CONFIG_FILE"
-
-function validate_block_device() {
-    local device="$1"
-    if [[ ! -b "$device" ]]; then
-        echo "Error: $device is not a valid block device."
-        exit 1
-    fi
-}
-
-function validate_variable() {
-    local var_name="$1"
-    local var_value="${!1}" # Indirect expansion to get the value of the variable name
-    if [[ -z "$var_value" ]]; then
-        echo "Error: Variable $var_name is not set in $CONFIG_FILE."
-        exit 1
-    fi
-}
-
-function verify_partitions() {
-    echo "========================================================"
-    echo "             PARTITION VERIFICATION STEP                "
-    echo "========================================================"
-    echo ""
-    echo "Please review the partition layout below before formatting."
-    echo ""
-    
-    # 1. Show a clean tree view of the disks
-    echo "--- Visual Layout (lsblk) ---"
-    lsblk -o NAME,SIZE,TYPE,FSTYPE,MODEL $EFI_DISK $ROOT_DISK
-    echo ""
-    
-    # 2. Show detailed partition table for EFI disk
-    echo "--- Detailed Info for EFI Disk ($EFI_DISK) ---"
-    parted "$EFI_DISK" print
-    echo ""
-    
-    # 3. Show detailed partition table for Root/Swap disk
-    echo "--- Detailed Info for Root/Swap Disk ($ROOT_DISK) ---"
-    parted "$ROOT_DISK" print
-    echo ""
-    
-    echo "========================================================"
-    echo "Expected Layout:"
-    echo "  $EFI_DISK -> 1 partition (ESP, fat32, size: $EFI_SIZE)"
-    echo "  $ROOT_DISK -> 2 partitions (1: linux-swap size: $SWAP_SIZE, 2: btrfs size: rest of disk)"
-    echo "========================================================"
-    echo ""
-    
-    # Prompt for confirmation. Using 'yes' instead of 'y' prevents accidental Enter presses.
-    read -p "Does the layout match your expectations? Type 'yes' to continue: " confirm
-    
-    if [[ "$confirm" != "yes" ]]; then
-        echo "Aborting script. No filesystems were created."
-        exit 1
-    fi
-    
-    echo "Verification passed. Proceeding to filesystem creation..."
-}
-
-function download() {
-    local url="$1"
-    local output="$2"
-    wget -q --show-progress -O "$output" "$url" || curl -fLo "$output" "$url"
-}
-
-function download_stdout() {
-    local url="$1"
-    wget -qO- "$url" || curl -fsSL "$url"
-}
-
-echo "Validating configuration..."
-validate_variable "EFI_DISK"
-validate_variable "ROOT_DISK"
-validate_variable "EFI_PART"
-validate_variable "ROOT_PART"
-validate_variable "SWAP_PART"
-
-validate_block_device "$EFI_DISK"
-validate_block_device "$ROOT_DISK"
-
-echo "Configuration loaded successfully."
-echo "EFI Disk: $EFI_DISK | Root Disk: $ROOT_DISK"
-echo "Swap Size: $SWAP_SIZE | Hostname: $HOSTNAME"
-
 function setup_disk() {
+
     echo "Starting disk setup"
 
     read -r -p "You are about to format the disk $EFI_DISK and $ROOT_DISK Are you sure? (y/n) " confirm
@@ -123,15 +26,16 @@ function setup_disk() {
 }
 
 function disk_format() {
+
     echo "Formating $EFI_PART"
     mkfs.vfat -F 32 "$EFI_PART"
 
     export GPG_TTY=$(tty)
 
     echo "Change DIR to ESP"
-    mkdir -p /mnt/root
-    mkdir -p /mnt/gentoo
-    MOUNT_EFI="/mnt/gentoo/efi"
+    mkdir -p "$BTRFS_TEMP_MOUNT"
+    mkdir -p "$ROOT_MOUNTPOINT"
+    MOUNT_EFI="$ROOT_MOUNTPOINT/efi"
     mkdir -p "$MOUNT_EFI"
     mount "$EFI_PART" "$MOUNT_EFI"
     cd "$MOUNT_EFI" || { echo "Failed to change dir to $MOUNT_EFI"; exit 1;}
@@ -201,12 +105,11 @@ function disk_format() {
     echo "Formating  $ROOT_PART"
     mkfs.btrfs -L BTROOT "/dev/mapper/$LUKS_ROOT_NAME" || { echo "Failed to create btrfs"; exit 1; }
     echo "mounting filesystem to /mnt/root"
-    mount -t btrfs -o defaults,noatime,compress=zstd "/dev/mapper/$LUKS_ROOT_NAME" /mnt/root || { echo "Failed to mount btrfs /dev/mapper/$LUKS_ROOT_NAME to /mnt/root"; exit 1; }
-
+    mount -t btrfs -o defaults,noatime,compress=zstd "/dev/mapper/$LUKS_ROOT_NAME" "$BTRFS_TEMP_MOUNT"
     # Create subvolumes
     echo "creation of subvolumes"
     for sub in activeroot home etc var log tmp; do
-        btrfs subvolume create "/mnt/root/$sub" || { echo "Failed to create subvolume $sub"; exit 1; }
+        btrfs subvolume create "$BTRFS_TEMP_MOUNT/$sub" || { echo "Failed to create subvolume $sub"; exit 1; }
     done
 
     # Creating and mounting to root
@@ -219,7 +122,7 @@ function disk_format() {
 
 }
 
-function download_stage3() {
+function stage3() {
 
 	local STAGE3_BASENAME_FINAL
 	if [[ ("$GENTOO_ARCH" == "amd64" && "$STAGE3_VARIANT" == *x32*) || ("$GENTOO_ARCH" == "x86" && -n "$GENTOO_SUBARCH") ]]; then
@@ -339,5 +242,154 @@ function config_portage() {
     cp ~/gentoo-install/portage/package.use/* /mnt/gentoo/etc/portage/package.use \
         || { echo "Failed to copy over portage/package.use/*"; exit 1;}
 
+}
+
+function  gentoo_chroot () {
+    local chroot_dir="$1"
+    # Copy resolv.conf
+	echo "Preparing chroot environment"
+	install --mode=0644 /etc/resolv.conf "$chroot_dir/etc/resolv.conf" \
+		|| { echo "Could not copy resolv.conf"; exit 1;}
+
+	# Mount virtual filesystems
+	einfo "Mounting virtual filesystems"
+	(
+		mountpoint -q -- "$chroot_dir/proc" || mount -t proc /proc "$chroot_dir/proc" || exit 1
+		mountpoint -q -- "$chroot_dir/run"  || {
+			mount --rbind /run  "$chroot_dir/run" &&
+			mount --make-rslave "$chroot_dir/run"; } || exit 1
+		mountpoint -q -- "$chroot_dir/tmp"  || {
+			mount --rbind /tmp  "$chroot_dir/tmp" &&
+			mount --make-rslave "$chroot_dir/tmp"; } || exit 1
+		mountpoint -q -- "$chroot_dir/sys"  || {
+			mount --rbind /sys  "$chroot_dir/sys" &&
+			mount --make-rslave "$chroot_dir/sys"; } || exit 1
+		mountpoint -q -- "$chroot_dir/dev"  || {
+			mount --rbind /dev  "$chroot_dir/dev" &&
+			mount --make-rslave "$chroot_dir/dev"; } || exit 1
+	) || { echo "Could not mount virtual filesystems"; exit 1;}
+
+
+	# Cache lsblk output, because it doesn't work correctly in chroot (returns almost no info for devices, e.g. empty uuids)
+	cache_lsblk_output
+
+	# Execute command
+	einfo "Chrooting..."
+	EXECUTED_IN_CHROOT=true \
+ 		DEBUGINFOD_URLS="" \
+ 		DEBUGINFOD_IMA_CERT_PATH="" \
+		TMP_DIR="$TMP_DIR" \
+		CACHED_LSBLK_OUTPUT="$CACHED_LSBLK_OUTPUT" \
+		exec chroot -- "$chroot_dir" "$GENTOO_INSTALL_REPO_DIR/scripts/dispatch_chroot.sh" "$@" \
+			|| { echo "Failed to chroot into '$chroot_dir'."; exit 1;} 
+
+}
+
+function bind_repo_dir() {
+
+	# Use new location by default
+	export GENTOO_INSTALL_REPO_DIR="$GENTOO_INSTALL_REPO_BIND"
+
+	# Bind the repo dir to a location in /tmp,
+	# so it can be accessed from within the chroot
+	mountpoint -q -- "$GENTOO_INSTALL_REPO_BIND" \
+		&& return
+
+	# Mount root device
+	einfo "Bind mounting repo directory"
+	mkdir -p "$GENTOO_INSTALL_REPO_BIND" \
+		|| { echo "Could not create mountpoint directory '$GENTOO_INSTALL_REPO_BIND'"; exit 1;}
+	mount --bind "$GENTOO_INSTALL_REPO_DIR_ORIGINAL" "$GENTOO_INSTALL_REPO_BIND" \
+		|| { echo "Could not bind mount '$GENTOO_INSTALL_REPO_DIR_ORIGINAL' to '$GENTOO_INSTALL_REPO_BIND'"; exit 1;}
+
+}
+
+function mount_efivars() {
+
+	# Skip if already mounted
+	mountpoint -q -- "/sys/firmware/efi/efivars" \
+		&& return
+
+	# Mount efivars
+	einfo "Mounting efivars"
+	mount -o remount,rw -t efivarfs efivarfs /sys/firmware/efi/efivars \
+		|| { echo "Could not mount efivarfs"; exit 1;}
+
+}
+
+# Helper funtions
+
+function mkdir_or_die() {
+	# shellcheck disable=SC2174
+	mkdir -m "$1" -p "$2" \
+		|| die "Could not create directory '$2'"
+}
+
+function validate_block_device() {
+    local device="$1"
+    if [[ ! -b "$device" ]]; then
+        echo "Error: $device is not a valid block device."
+        exit 1
+    fi
+}
+
+function validate_variable() {
+    local var_name="$1"
+    local var_value="${!1}" # Indirect expansion to get the value of the variable name
+    if [[ -z "$var_value" ]]; then
+        echo "Error: Variable $var_name is not set in $CONFIG_FILE."
+        exit 1
+    fi
+}
+
+function verify_partitions() {
+    echo "========================================================"
+    echo "             PARTITION VERIFICATION STEP                "
+    echo "========================================================"
+    echo ""
+    echo "Please review the partition layout below before formatting."
+    echo ""
     
+    # 1. Show a clean tree view of the disks
+    echo "--- Visual Layout (lsblk) ---"
+    lsblk -o NAME,SIZE,TYPE,FSTYPE,MODEL $EFI_DISK $ROOT_DISK
+    echo ""
+    
+    # 2. Show detailed partition table for EFI disk
+    echo "--- Detailed Info for EFI Disk ($EFI_DISK) ---"
+    parted "$EFI_DISK" print
+    echo ""
+    
+    # 3. Show detailed partition table for Root/Swap disk
+    echo "--- Detailed Info for Root/Swap Disk ($ROOT_DISK) ---"
+    parted "$ROOT_DISK" print
+    echo ""
+    
+    echo "========================================================"
+    echo "Expected Layout:"
+    echo "  $EFI_DISK -> 1 partition (ESP, fat32, size: $EFI_SIZE)"
+    echo "  $ROOT_DISK -> 2 partitions (1: linux-swap size: $SWAP_SIZE, 2: btrfs size: rest of disk)"
+    echo "========================================================"
+    echo ""
+    
+    # Prompt for confirmation. Using 'yes' instead of 'y' prevents accidental Enter presses.
+    read -p "Does the layout match your expectations? Type 'yes' to continue: " confirm
+    
+    if [[ "$confirm" != "yes" ]]; then
+        echo "Aborting script. No filesystems were created."
+        exit 1
+    fi
+    
+    echo "Verification passed. Proceeding to filesystem creation..."
+}
+
+function download() {
+    local url="$1"
+    local output="$2"
+    wget -q --show-progress -O "$output" "$url" || curl -fLo "$output" "$url"
+}
+
+function download_stdout() {
+    local url="$1"
+    wget -qO- "$url" || curl -fsSL "$url"
 }
