@@ -368,7 +368,20 @@ function config_portage() {
 }
 
 function  gentoo_chroot () {
+
+	if [[ $# -eq 1 ]]; then
+		einfo "To later unmount all virtual filesystems, simply use umount -l ${1@Q}"
+		gentoo_chroot "$1" /bin/bash --init-file <(echo 'init_bash')
+	fi
+
+	[[ ${EXECUTED_IN_CHROOT-false} == "false" ]] \
+		|| die "Already in chroot"
+
     local chroot_dir="$1"
+	shift
+
+	bind_repo_dir
+
     # Copy resolv.conf
 	echo "Preparing chroot environment"
 	install --mode=0644 /etc/resolv.conf "$chroot_dir/etc/resolv.conf" \
@@ -409,7 +422,6 @@ function  gentoo_chroot () {
 }
 
 function bind_repo_dir() {
-
 	# Use new location by default
 	export GENTOO_INSTALL_REPO_DIR="$GENTOO_INSTALL_REPO_BIND"
 
@@ -421,10 +433,9 @@ function bind_repo_dir() {
 	# Mount root device
 	einfo "Bind mounting repo directory"
 	mkdir -p "$GENTOO_INSTALL_REPO_BIND" \
-		|| { echo "Could not create mountpoint directory '$GENTOO_INSTALL_REPO_BIND'"; exit 1;}
+		|| die "Could not create mountpoint directory '$GENTOO_INSTALL_REPO_BIND'"
 	mount --bind "$GENTOO_INSTALL_REPO_DIR_ORIGINAL" "$GENTOO_INSTALL_REPO_BIND" \
-		|| { echo "Could not bind mount '$GENTOO_INSTALL_REPO_DIR_ORIGINAL' to '$GENTOO_INSTALL_REPO_BIND'"; exit 1;}
-
+		|| die "Could not bind mount '$GENTOO_INSTALL_REPO_DIR_ORIGINAL' to '$GENTOO_INSTALL_REPO_BIND'"
 }
 
 function mount_efivars() {
