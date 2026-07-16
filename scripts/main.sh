@@ -34,7 +34,28 @@ function install_stage3() {
 function main_install_gentoo_in_chroot() {
     echo "we are in chroot"
 
+    echo "Syncing to DB"
     emerge --sync --quiet
+
+    env_update
+
+    echo "Emerging sys-*"
+    try emerge --verbose sys-kernel/ugrd sys-apps/pciutils sys-fs/cryptsetup \
+        sys-fs/btrfs-progs sys-fs/e2fsprogs sys-fs/dosfstools \
+	    sys-block/io-scheduler-udev-rules sys-apps/mlocate \
+        sys-boot/efibootmgr sys-kernel/installkernel \
+        sys-kernel/linux-firmware sys-kernel/gentoo-kernel \
+
+    echo "Emerging tools"
+    try emerge --verbose app-arch/zstd app-crypt/gnupg dev-vcs/git \
+        app-portage/gentoolkit
     
+    try emerge --oneshot --nodeps app-arch/cpio
+
+    echo "Configure timezone"
+    try emerge -v --config sys-libs/timezone-data
+
+    die "Test Completed"
+
 }
 

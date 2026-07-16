@@ -23,12 +23,18 @@ function download_stdout() {
     wget -qO- "$url" || curl -fsSL "$url"
 }
 
+function eerror() {
+	echo "[1;31merror:[m $*" >&2
+}
+
 function einfo() {
 	echo "[[1m+[m] [1;33m$*[m"
 }
 
-function eerror() {
-	echo "[1;31merror:[m $*" >&2
+function env_update() {
+    env-update
+    source /etc/profile \
+        || die "Could not source /etc/profile"
 }
 
 function init_bash() {
