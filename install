@@ -27,8 +27,8 @@ export GENTOO_INSTALL_REPO_DIR="$GENTOO_INSTALL_REPO_DIR_ORIGINAL"
 export GENTOO_INSTALL_REPO_SCRIPT_ACTIVE=true
 export GENTOO_INSTALL_REPO_SCRIPT_PID=$$
 
-source "$GENTOO_INSTALL_REPO_DIR/fulldisk_encryption.sh"
-source "$GENTOO_INSTALL_REPO_DIR/main.sh"
+source "$GENTOO_INSTALL_REPO_DIR/scripts/fulldisk_encryption.sh"
+source "$GENTOO_INSTALL_REPO_DIR/scripts/main.sh"
 
 trap 'kill "$GENTOO_INSTALL_REPO_SCRIPT_PID"' INT
 

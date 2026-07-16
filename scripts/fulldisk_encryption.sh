@@ -1,14 +1,8 @@
 # Helper funtions
 
-function mkdir_or_die() {
-	# shellcheck disable=SC2174
-	mkdir -m "$1" -p "$2" \
-		|| die "Could not create directory '$2'"
-}
-
-
-function eerror() {
-	echo "[1;31merror:[m $*" >&2
+function cache_lsblk_output() {
+	CACHED_LSBLK_OUTPUT="$(lsblk --all --path --pairs --output NAME,PTUUID,PARTUUID)" \
+		|| die "Error while executing lsblk to cache output"
 }
 
 function die() {
@@ -16,6 +10,31 @@ function die() {
 	[[ -v GENTOO_INSTALL_REPO_SCRIPT_PID && $$ -ne $GENTOO_INSTALL_REPO_SCRIPT_PID ]] \
 		&& kill "$GENTOO_INSTALL_REPO_SCRIPT_PID"
 	exit 1
+}
+
+function download() {
+    local url="$1"
+    local output="$2"
+    wget -q --show-progress -O "$output" "$url" || curl -fLo "$output" "$url"
+}
+
+function download_stdout() {
+    local url="$1"
+    wget -qO- "$url" || curl -fsSL "$url"
+}
+
+function einfo() {
+	echo "[[1m+[m] [1;33m$*[m"
+}
+
+function eerror() {
+	echo "[1;31merror:[m $*" >&2
+}
+
+function mkdir_or_die() {
+	# shellcheck disable=SC2174
+	mkdir -m "$1" -p "$2" \
+		|| die "Could not create directory '$2'"
 }
 
 function validate_block_device() {
@@ -76,16 +95,7 @@ function verify_partitions() {
     echo "Verification passed. Proceeding to filesystem creation..."
 }
 
-function download() {
-    local url="$1"
-    local output="$2"
-    wget -q --show-progress -O "$output" "$url" || curl -fLo "$output" "$url"
-}
 
-function download_stdout() {
-    local url="$1"
-    wget -qO- "$url" || curl -fsSL "$url"
-}
 
 
 function preprocess_config() {
@@ -107,24 +117,6 @@ function check_config() {
 	local hostname_regex='^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$'
 	[[ $HOSTNAME =~ $hostname_regex ]] \
 		|| die "'$HOSTNAME' is not a valid hostname"
-
-	[[ -v "DISK_ID_ROOT" && -n $DISK_ID_ROOT ]] \
-		|| die "You must assign DISK_ID_ROOT"
-	[[ -v "DISK_ID_EFI" && -n $DISK_ID_EFI ]] \
-		|| die "You must assign DISK_ID_EFI"
-
-	[[ -v "DISK_ID_EFI" ]] && [[ ! -v "DISK_ID_TO_UUID[$DISK_ID_EFI]" ]] \
-		&& die "Missing uuid for DISK_ID_EFI, have you made sure it is used?"
-	[[ -v "DISK_ID_SWAP" ]] && [[ ! -v "DISK_ID_TO_UUID[$DISK_ID_SWAP]" ]] \
-		&& die "Missing uuid for DISK_ID_SWAP, have you made sure it is used?"
-	[[ -v "DISK_ID_ROOT" ]] && [[ ! -v "DISK_ID_TO_UUID[$DISK_ID_ROOT]" ]] \
-		&& die "Missing uuid for DISK_ID_ROOT, have you made sure it is used?"
-
-	if [[ -v "DISK_ID_EFI" ]]; then
-		IS_EFI=true # Taken from main
-	else
-		die
-	fi
 }
 
 
