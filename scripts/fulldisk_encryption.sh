@@ -6,6 +6,11 @@ function mkdir_or_die() {
 		|| die "Could not create directory '$2'"
 }
 
+
+function eerror() {
+	echo "[1;31merror:[m $*" >&2
+}
+
 function die() {
 	eerror "$*"
 	[[ -v GENTOO_INSTALL_REPO_SCRIPT_PID && $$ -ne $GENTOO_INSTALL_REPO_SCRIPT_PID ]] \
