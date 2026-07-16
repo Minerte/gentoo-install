@@ -19,8 +19,13 @@ function get_source_dir() {
 	echo -n "$(realpath "$(dirname "${source}")")"
 }
 
-source "$GENTOO_INSTALL_REPO_DIR/scripts/fulldisk_encryption.sh"
-source "$GENTOO_INSTALL_REPO_DIR/scripts/main.sh"
+ACTUAL_WORKING_DIRECTORY="$(realpath "$(pwd)")" || exit 1
+export ACTUAL_WORKING_DIRECTORY
+GENTOO_INSTALL_REPO_DIR_ORIGINAL="$(get_source_dir)"
+export GENTOO_INSTALL_REPO_DIR_ORIGINAL
+export GENTOO_INSTALL_REPO_DIR="$GENTOO_INSTALL_REPO_DIR_ORIGINAL"
+export GENTOO_INSTALL_REPO_SCRIPT_ACTIVE=true
+export GENTOO_INSTALL_REPO_SCRIPT_PID=$$
 
 trap 'kill "$GENTOO_INSTALL_REPO_SCRIPT_PID"' INT
 
