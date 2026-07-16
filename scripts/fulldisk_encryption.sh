@@ -40,6 +40,13 @@ function env_update() {
         || die "Could not source /etc/profile"
 }
 
+function flush_stdin() {
+	local empty_stdin
+	# Unused variable is intentional.
+	# shellcheck disable=SC2034
+	while read -r -t 0.01 empty_stdin; do true; done
+}
+
 function init_bash() {
 	source /etc/profile
 	umask 0077
