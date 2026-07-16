@@ -426,35 +426,20 @@ function  gentoo_chroot () {
 }
 
 function bind_repo_dir() {
-    # Use new location by default
-    export GENTOO_INSTALL_REPO_DIR="$GENTOO_INSTALL_REPO_BIND"
-    
-    # Check if already mounted
-    if mountpoint -q -- "$GENTOO_INSTALL_REPO_BIND"; then
-        # Check if it's the WRONG type of mount (overlay from LiveOS)
-        local mount_type
-        mount_type=$(findmnt -n -o FSTYPE --target "$GENTOO_INSTALL_REPO_BIND" 2>/dev/null)
-        
-        if [[ "$mount_type" == "overlay" ]]; then
-            einfo "Detected wrong mount type (overlay), unmounting..."
-            umount "$GENTOO_INSTALL_REPO_BIND" || { 
-                echo "Could not unmount overlay filesystem"; 
-                exit 1; 
-            }
-            # Remove the directory so we can recreate it
-            rm -rf "$GENTOO_INSTALL_REPO_BIND"
-        else
-            # It's already correctly mounted
-            return
-        fi
-    fi
-    
-    # Mount root device
-    einfo "Bind mounting repo directory"
-    mkdir -p "$GENTOO_INSTALL_REPO_BIND" \
-        || { echo "Could not create mountpoint directory '$GENTOO_INSTALL_REPO_BIND'"; exit 1; }
-    mount --bind "$GENTOO_INSTALL_REPO_DIR_ORIGINAL" "$GENTOO_INSTALL_REPO_BIND" \
-        || { echo "Could not bind mount '$GENTOO_INSTALL_REPO_DIR_ORIGINAL' to '$GENTOO_INSTALL_REPO_BIND'"; exit 1; }
+	# Use new location by default
+	export GENTOO_INSTALL_REPO_DIR="$GENTOO_INSTALL_REPO_BIND"
+
+	# Bind the repo dir to a location in /tmp,
+	# so it can be accessed from within the chroot
+	mountpoint -q -- "$GENTOO_INSTALL_REPO_BIND" \
+		&& return
+
+	# Mount root device
+	einfo "Bind mounting repo directory"
+	mkdir -p "$GENTOO_INSTALL_REPO_BIND" \
+		|| die "Could not create mountpoint directory '$GENTOO_INSTALL_REPO_BIND'"
+	mount --bind "$GENTOO_INSTALL_REPO_DIR_ORIGINAL" "$GENTOO_INSTALL_REPO_BIND" \
+		|| die "Could not bind mount '$GENTOO_INSTALL_REPO_DIR_ORIGINAL' to '$GENTOO_INSTALL_REPO_BIND'"
 }
 
 function mount_efivars() {
