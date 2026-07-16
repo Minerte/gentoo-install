@@ -409,37 +409,50 @@ function gentoo_chroot () {
             mount --make-rslave "$chroot_dir/dev"; } || exit 1
     ) || { echo "Could not mount virtual filesystems"; exit 1;}
 
-    # Cache lsblk output
+    # Cache lsblk output, because it doesn't work correctly in chroot (returns almost no info for devices, e.g. empty uuids)
     cache_lsblk_output
 
-    # Execute command - USE THE PATH AS SEEN FROM INSIDE THE CHROOT
+    # The path from the chroot's perspective
+    CHROOT_SCRIPT_PATH="/tmp/gentoo-install-repo/scripts/dispatch_chroot.sh"
+
+    # Verify the script exists on the host before chrooting
+    if [[ ! -f "$chroot_dir$CHROOT_SCRIPT_PATH" ]]; then
+        die "Script not found at $chroot_dir$CHROOT_SCRIPT_PATH"
+    fi
+
+    # Execute command
     einfo "Chrooting..."
     EXECUTED_IN_CHROOT=true \
         DEBUGINFOD_URLS="" \
         DEBUGINFOD_IMA_CERT_PATH="" \
         TMP_DIR="$TMP_DIR" \
         CACHED_LSBLK_OUTPUT="$CACHED_LSBLK_OUTPUT" \
-        exec chroot -- "$chroot_dir" "/tmp/gentoo-install-repo/scripts/dispatch_chroot.sh" "$@" \
+        exec chroot -- "$chroot_dir" "$CHROOT_SCRIPT_PATH" "$@" \
         || { echo "Failed to chroot into '$chroot_dir'."; exit 1;} 
 }
 
 function bind_repo_dir() {
-	# Use new location by default
-	export GENTOO_INSTALL_REPO_DIR="$GENTOO_INSTALL_REPO_BIND"
+    # Use new location by default
+    export GENTOO_INSTALL_REPO_DIR="$GENTOO_INSTALL_REPO_BIND"
 
-	# Bind the repo dir to a location in /tmp,
-	# so it can be accessed from within the chroot
-	mountpoint -q -- "$GENTOO_INSTALL_REPO_BIND" \
-		&& return
+    # Bind the repo dir to a location in /tmp,
+    # so it can be accessed from within the chroot
+    mountpoint -q -- "$GENTOO_INSTALL_REPO_BIND" \
+        && return
 
-	# Mount root device
-	einfo "Bind mounting repo directory"
-	mkdir -p "$GENTOO_INSTALL_REPO_BIND" \
-		|| die "Could not create mountpoint directory '$GENTOO_INSTALL_REPO_BIND'"
-	mount --bind "$GENTOO_INSTALL_REPO_DIR_ORIGINAL" "$GENTOO_INSTALL_REPO_BIND" \
-		|| die "Could not bind mount '$GENTOO_INSTALL_REPO_DIR_ORIGINAL' to '$GENTOO_INSTALL_REPO_BIND'"
+    # Mount root device
+    einfo "Bind mounting repo directory"
+    mkdir -p "$GENTOO_INSTALL_REPO_BIND" \
+        || die "Could not create mountpoint directory '$GENTOO_INSTALL_REPO_BIND'"
+    mount --bind "$GENTOO_INSTALL_REPO_DIR_ORIGINAL" "$GENTOO_INSTALL_REPO_BIND" \
+        || die "Could not bind mount '$GENTOO_INSTALL_REPO_DIR_ORIGINAL' to '$GENTOO_INSTALL_REPO_BIND'"
+    
+    # Verify the bind mount worked and the script exists
+    if [[ ! -f "$GENTOO_INSTALL_REPO_BIND/scripts/dispatch_chroot.sh" ]]; then
+        die "dispatch_chroot.sh not found in bind mount at $GENTOO_INSTALL_REPO_BIND/scripts/dispatch_chroot.sh"
+    fi
+    einfo "Bind mount verified: dispatch_chroot.sh exists"
 }
-
 function mount_efivars() {
 
 	# Skip if already mounted
