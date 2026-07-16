@@ -1,5 +1,46 @@
 #!/bin/bash
 
+
+function preprocess_config() {
+	check_config
+}
+
+function check_config() {
+	[[ $KEYMAP =~ ^[0-9A-Za-z-]*$ ]] \
+		|| die "KEYMAP contains invalid characters"
+
+	if [[ "$STAGE3_BASENAME" != *systemd* ]]; then
+		[[ "$STAGE3_BASENAME" != *systemd* ]] \
+			|| die "Using OpenRC requires a non-systemd stage3 archive!"
+	else
+			die "Failed"
+	fi
+
+	# Check hostname per RFC1123
+	local hostname_regex='^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$'
+	[[ $HOSTNAME =~ $hostname_regex ]] \
+		|| die "'$HOSTNAME' is not a valid hostname"
+
+	[[ -v "DISK_ID_ROOT" && -n $DISK_ID_ROOT ]] \
+		|| die "You must assign DISK_ID_ROOT"
+	[[ -v "DISK_ID_EFI" && -n $DISK_ID_EFI ]] \
+		|| die "You must assign DISK_ID_EFI"
+
+	[[ -v "DISK_ID_EFI" ]] && [[ ! -v "DISK_ID_TO_UUID[$DISK_ID_EFI]" ]] \
+		&& die "Missing uuid for DISK_ID_EFI, have you made sure it is used?"
+	[[ -v "DISK_ID_SWAP" ]] && [[ ! -v "DISK_ID_TO_UUID[$DISK_ID_SWAP]" ]] \
+		&& die "Missing uuid for DISK_ID_SWAP, have you made sure it is used?"
+	[[ -v "DISK_ID_ROOT" ]] && [[ ! -v "DISK_ID_TO_UUID[$DISK_ID_ROOT]" ]] \
+		&& die "Missing uuid for DISK_ID_ROOT, have you made sure it is used?"
+
+	if [[ -v "DISK_ID_EFI" ]]; then
+		IS_EFI=true # Taken from main
+	else
+		die
+	fi
+}
+
+
 function setup_disk() {
 
     echo "Starting disk setup"
