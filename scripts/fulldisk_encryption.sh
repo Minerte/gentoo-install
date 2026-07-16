@@ -32,7 +32,10 @@ function einfo() {
 }
 
 function env_update() {
-    env-update
+    env-update \
+        || die "Error in env-update"
+    export DEBUGINFOD_URLS="${DEBUGINFOD_URLS:-}"
+    export DEBUGINFOD_IMA_CERT_PATH="${DEBUGINFOD_IMA_CERT_PATH:-}"
     source /etc/profile \
         || die "Could not source /etc/profile"
 }
