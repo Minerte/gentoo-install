@@ -398,29 +398,29 @@ function gentoo_chroot () {
         mountpoint -q -- "$chroot_dir/run"  || {
             mount --rbind /run  "$chroot_dir/run" &&
             mount --make-rslave "$chroot_dir/run"; } || exit 1
-        mountpoint -q -- "$chroot_dir/tmp"  || {
-            mount --rbind /tmp  "$chroot_dir/tmp" &&
-            mount --make-rslave "$chroot_dir/tmp"; } || exit 1
+        # Force bind-mount host /tmp over chroot /tmp (ignore existing mount)
+        umount -l "$chroot_dir/tmp" 2>/dev/null
+        mount --rbind /tmp "$chroot_dir/tmp" || exit 1
+        mount --make-rslave "$chroot_dir/tmp" || exit 1
         mountpoint -q -- "$chroot_dir/sys"  || {
             mount --rbind /sys  "$chroot_dir/sys" &&
             mount --make-rslave "$chroot_dir/sys"; } || exit 1
         mountpoint -q -- "$chroot_dir/dev"  || {
             mount --rbind /dev  "$chroot_dir/dev" &&
             mount --make-rslave "$chroot_dir/dev"; } || exit 1
-    ) || { echo "Could not mount virtual filesystems"; exit 1;}
+    ) || die "Could not mount virtual filesystems"
 
-    # Cache lsblk output, because it doesn't work correctly in chroot (returns almost no info for devices, e.g. empty uuids)
     cache_lsblk_output
-
-    # The path from the chroot's perspective
     CHROOT_SCRIPT_PATH="/tmp/gentoo-install-repo/scripts/dispatch_chroot.sh"
 
-    # Verify the script exists on the host before chrooting
+    # Verify the script exists inside the chroot (after /tmp is mounted)
     if [[ ! -f "$chroot_dir$CHROOT_SCRIPT_PATH" ]]; then
+        # Debug: list what's actually there
+        echo "Contents of $chroot_dir/tmp/gentoo-install-repo/scripts/:"
+        ls -la "$chroot_dir/tmp/gentoo-install-repo/scripts/" 2>/dev/null || echo "Directory not accessible"
         die "Script not found at $chroot_dir$CHROOT_SCRIPT_PATH"
     fi
 
-    # Execute command
     einfo "Chrooting..."
     EXECUTED_IN_CHROOT=true \
         DEBUGINFOD_URLS="" \
