@@ -35,7 +35,7 @@ function main_install_gentoo_in_chroot() {
     echo "we are in chroot"
 
     echo "Syncing to DB"
-    emerge --sync --quiet
+    try emerge --sync --quiet
 
     env_update
 

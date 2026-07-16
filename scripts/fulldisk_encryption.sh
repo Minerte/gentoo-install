@@ -52,6 +52,45 @@ function mkdir_or_die() {
 		|| die "Could not create directory '$2'"
 }
 
+function try() {
+	local response
+	local cmd_status
+	local prompt_parens="([1mS[mhell/[1mr[metry/[1ma[mbort/[1mc[montinue/[1mp[mrint)"
+
+	# Outer loop, allows us to retry the command
+	while true; do
+		# Try command
+		"$@"
+		cmd_status="$?"
+
+		if [[ $cmd_status != 0 ]]; then
+			echo "[1;31m * Command failed: [1;33m\$[m $*"
+			echo "Last command failed with exit code $cmd_status"
+
+			# Prompt until input is valid
+			while true; do
+				echo -n "Specify next action $prompt_parens "
+				flush_stdin
+				read -r response \
+					|| die "Error in read"
+				case "${response,,}" in
+					''|s|shell)
+						echo "You will be prompted for action again after exiting this shell."
+						/bin/bash --init-file <(echo "init_bash")
+						;;
+					r|retry) continue 2 ;;
+					a|abort) die "Installation aborted" ;;
+					c|continue) return 0 ;;
+					p|print) echo "[1;33m\$[m $*" ;;
+					*) ;;
+				esac
+			done
+		fi
+
+		return
+	done
+}
+
 function validate_block_device() {
     local device="$1"
     if [[ ! -b "$device" ]]; then
@@ -109,7 +148,6 @@ function verify_partitions() {
     
     echo "Verification passed. Proceeding to filesystem creation..."
 }
-
 
 function preprocess_config() {
 	check_config
