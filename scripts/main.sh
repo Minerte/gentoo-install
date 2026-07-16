@@ -1,7 +1,9 @@
 function main_install() {
     install_stage3
-
     mount_efivars
+
+    bind_repo_dir
+
     gentoo_chroot "$ROOT_MOUNTPOINT" "$GENTOO_INSTALL_REPO_BIND/install" __install_gentoo_in_chroot
 }
 

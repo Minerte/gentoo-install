@@ -300,6 +300,9 @@ function stage3() {
             || { echo "Checksum mismatch! sha512sum"; exit 1;}
 	fi
 
+	echo "sleep... 20 seconds"
+	sleep 20
+
     echo "Extracting Stage 3 tarball"
     tar xpvf "${CURRENT_STAGE3}" --xattrs-include='*.*' --numeric-owner -C /mnt/gentoo \
         || { echo "Failed to extract $STAGE3_FILENAME to /mnt/gentoo"; exit 1; }
