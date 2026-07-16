@@ -1,5 +1,3 @@
-#!/bin/bash
-
 function main_install() {
     install_stage3
 

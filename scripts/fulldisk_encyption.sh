@@ -1,4 +1,86 @@
-#!/bin/bash
+# Helper funtions
+
+function mkdir_or_die() {
+	# shellcheck disable=SC2174
+	mkdir -m "$1" -p "$2" \
+		|| die "Could not create directory '$2'"
+}
+
+function die() {
+	eerror "$*"
+	[[ -v GENTOO_INSTALL_REPO_SCRIPT_PID && $$ -ne $GENTOO_INSTALL_REPO_SCRIPT_PID ]] \
+		&& kill "$GENTOO_INSTALL_REPO_SCRIPT_PID"
+	exit 1
+}
+
+function validate_block_device() {
+    local device="$1"
+    if [[ ! -b "$device" ]]; then
+        echo "Error: $device is not a valid block device."
+        exit 1
+    fi
+}
+
+function validate_variable() {
+    local var_name="$1"
+    local var_value="${!1}" # Indirect expansion to get the value of the variable name
+    if [[ -z "$var_value" ]]; then
+        echo "Error: Variable $var_name is not set in $CONFIG_FILE."
+        exit 1
+    fi
+}
+
+function verify_partitions() {
+    echo "========================================================"
+    echo "             PARTITION VERIFICATION STEP                "
+    echo "========================================================"
+    echo ""
+    echo "Please review the partition layout below before formatting."
+    echo ""
+    
+    # 1. Show a clean tree view of the disks
+    echo "--- Visual Layout (lsblk) ---"
+    lsblk -o NAME,SIZE,TYPE,FSTYPE,MODEL $EFI_DISK $ROOT_DISK
+    echo ""
+    
+    # 2. Show detailed partition table for EFI disk
+    echo "--- Detailed Info for EFI Disk ($EFI_DISK) ---"
+    parted "$EFI_DISK" print
+    echo ""
+    
+    # 3. Show detailed partition table for Root/Swap disk
+    echo "--- Detailed Info for Root/Swap Disk ($ROOT_DISK) ---"
+    parted "$ROOT_DISK" print
+    echo ""
+    
+    echo "========================================================"
+    echo "Expected Layout:"
+    echo "  $EFI_DISK -> 1 partition (ESP, fat32, size: $EFI_SIZE)"
+    echo "  $ROOT_DISK -> 2 partitions (1: linux-swap size: $SWAP_SIZE, 2: btrfs size: rest of disk)"
+    echo "========================================================"
+    echo ""
+    
+    # Prompt for confirmation. Using 'yes' instead of 'y' prevents accidental Enter presses.
+    read -p "Does the layout match your expectations? Type 'yes' to continue: " confirm
+    
+    if [[ "$confirm" != "yes" ]]; then
+        echo "Aborting script. No filesystems were created."
+        exit 1
+    fi
+    
+    echo "Verification passed. Proceeding to filesystem creation..."
+}
+
+function download() {
+    local url="$1"
+    local output="$2"
+    wget -q --show-progress -O "$output" "$url" || curl -fLo "$output" "$url"
+}
+
+function download_stdout() {
+    local url="$1"
+    wget -qO- "$url" || curl -fsSL "$url"
+}
 
 
 function preprocess_config() {
@@ -356,81 +438,4 @@ function mount_efivars() {
 	mount -o remount,rw -t efivarfs efivarfs /sys/firmware/efi/efivars \
 		|| { echo "Could not mount efivarfs"; exit 1;}
 
-}
-
-# Helper funtions
-
-function mkdir_or_die() {
-	# shellcheck disable=SC2174
-	mkdir -m "$1" -p "$2" \
-		|| die "Could not create directory '$2'"
-}
-
-function validate_block_device() {
-    local device="$1"
-    if [[ ! -b "$device" ]]; then
-        echo "Error: $device is not a valid block device."
-        exit 1
-    fi
-}
-
-function validate_variable() {
-    local var_name="$1"
-    local var_value="${!1}" # Indirect expansion to get the value of the variable name
-    if [[ -z "$var_value" ]]; then
-        echo "Error: Variable $var_name is not set in $CONFIG_FILE."
-        exit 1
-    fi
-}
-
-function verify_partitions() {
-    echo "========================================================"
-    echo "             PARTITION VERIFICATION STEP                "
-    echo "========================================================"
-    echo ""
-    echo "Please review the partition layout below before formatting."
-    echo ""
-    
-    # 1. Show a clean tree view of the disks
-    echo "--- Visual Layout (lsblk) ---"
-    lsblk -o NAME,SIZE,TYPE,FSTYPE,MODEL $EFI_DISK $ROOT_DISK
-    echo ""
-    
-    # 2. Show detailed partition table for EFI disk
-    echo "--- Detailed Info for EFI Disk ($EFI_DISK) ---"
-    parted "$EFI_DISK" print
-    echo ""
-    
-    # 3. Show detailed partition table for Root/Swap disk
-    echo "--- Detailed Info for Root/Swap Disk ($ROOT_DISK) ---"
-    parted "$ROOT_DISK" print
-    echo ""
-    
-    echo "========================================================"
-    echo "Expected Layout:"
-    echo "  $EFI_DISK -> 1 partition (ESP, fat32, size: $EFI_SIZE)"
-    echo "  $ROOT_DISK -> 2 partitions (1: linux-swap size: $SWAP_SIZE, 2: btrfs size: rest of disk)"
-    echo "========================================================"
-    echo ""
-    
-    # Prompt for confirmation. Using 'yes' instead of 'y' prevents accidental Enter presses.
-    read -p "Does the layout match your expectations? Type 'yes' to continue: " confirm
-    
-    if [[ "$confirm" != "yes" ]]; then
-        echo "Aborting script. No filesystems were created."
-        exit 1
-    fi
-    
-    echo "Verification passed. Proceeding to filesystem creation..."
-}
-
-function download() {
-    local url="$1"
-    local output="$2"
-    wget -q --show-progress -O "$output" "$url" || curl -fLo "$output" "$url"
-}
-
-function download_stdout() {
-    local url="$1"
-    wget -qO- "$url" || curl -fsSL "$url"
 }
