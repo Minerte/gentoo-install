@@ -371,58 +371,56 @@ function config_portage() {
 
 }
 
-function  gentoo_chroot () {
+function gentoo_chroot () {
+    if [[ $# -eq 1 ]]; then
+        einfo "To later unmount all virtual filesystems, simply use umount -l ${1@Q}"
+        gentoo_chroot "$1" /bin/bash --init-file <(echo 'init_bash')
+        return
+    fi
 
-	if [[ $# -eq 1 ]]; then
-		einfo "To later unmount all virtual filesystems, simply use umount -l ${1@Q}"
-		gentoo_chroot "$1" /bin/bash --init-file <(echo 'init_bash')
-	fi
-
-	[[ ${EXECUTED_IN_CHROOT-false} == "false" ]] \
-		|| die "Already in chroot"
+    [[ ${EXECUTED_IN_CHROOT-false} == "false" ]] \
+        || die "Already in chroot"
 
     local chroot_dir="$1"
-	shift
+    shift
 
-	bind_repo_dir
+    bind_repo_dir
 
     # Copy resolv.conf
-	echo "Preparing chroot environment"
-	install --mode=0644 /etc/resolv.conf "$chroot_dir/etc/resolv.conf" \
-		|| { echo "Could not copy resolv.conf"; exit 1;}
+    echo "Preparing chroot environment"
+    install --mode=0644 /etc/resolv.conf "$chroot_dir/etc/resolv.conf" \
+        || { echo "Could not copy resolv.conf"; exit 1;}
 
-	# Mount virtual filesystems
-	einfo "Mounting virtual filesystems"
-	(
-		mountpoint -q -- "$chroot_dir/proc" || mount -t proc /proc "$chroot_dir/proc" || exit 1
-		mountpoint -q -- "$chroot_dir/run"  || {
-			mount --rbind /run  "$chroot_dir/run" &&
-			mount --make-rslave "$chroot_dir/run"; } || exit 1
-		mountpoint -q -- "$chroot_dir/tmp"  || {
-			mount --rbind /tmp  "$chroot_dir/tmp" &&
-			mount --make-rslave "$chroot_dir/tmp"; } || exit 1
-		mountpoint -q -- "$chroot_dir/sys"  || {
-			mount --rbind /sys  "$chroot_dir/sys" &&
-			mount --make-rslave "$chroot_dir/sys"; } || exit 1
-		mountpoint -q -- "$chroot_dir/dev"  || {
-			mount --rbind /dev  "$chroot_dir/dev" &&
-			mount --make-rslave "$chroot_dir/dev"; } || exit 1
-	) || { echo "Could not mount virtual filesystems"; exit 1;}
+    # Mount virtual filesystems
+    einfo "Mounting virtual filesystems"
+    (
+        mountpoint -q -- "$chroot_dir/proc" || mount -t proc /proc "$chroot_dir/proc" || exit 1
+        mountpoint -q -- "$chroot_dir/run"  || {
+            mount --rbind /run  "$chroot_dir/run" &&
+            mount --make-rslave "$chroot_dir/run"; } || exit 1
+        mountpoint -q -- "$chroot_dir/tmp"  || {
+            mount --rbind /tmp  "$chroot_dir/tmp" &&
+            mount --make-rslave "$chroot_dir/tmp"; } || exit 1
+        mountpoint -q -- "$chroot_dir/sys"  || {
+            mount --rbind /sys  "$chroot_dir/sys" &&
+            mount --make-rslave "$chroot_dir/sys"; } || exit 1
+        mountpoint -q -- "$chroot_dir/dev"  || {
+            mount --rbind /dev  "$chroot_dir/dev" &&
+            mount --make-rslave "$chroot_dir/dev"; } || exit 1
+    ) || { echo "Could not mount virtual filesystems"; exit 1;}
 
+    # Cache lsblk output
+    cache_lsblk_output
 
-	# Cache lsblk output, because it doesn't work correctly in chroot (returns almost no info for devices, e.g. empty uuids)
-	cache_lsblk_output
-
-	# Execute command
-	einfo "Chrooting..."
-	EXECUTED_IN_CHROOT=true \
- 		DEBUGINFOD_URLS="" \
- 		DEBUGINFOD_IMA_CERT_PATH="" \
-		TMP_DIR="$TMP_DIR" \
-		CACHED_LSBLK_OUTPUT="$CACHED_LSBLK_OUTPUT" \
-		exec chroot -- "$chroot_dir" "$GENTOO_INSTALL_REPO_DIR/scripts/dispatch_chroot.sh" "$@" \
-			|| { echo "Failed to chroot into '$chroot_dir'."; exit 1;} 
-
+    # Execute command - USE THE PATH AS SEEN FROM INSIDE THE CHROOT
+    einfo "Chrooting..."
+    EXECUTED_IN_CHROOT=true \
+        DEBUGINFOD_URLS="" \
+        DEBUGINFOD_IMA_CERT_PATH="" \
+        TMP_DIR="$TMP_DIR" \
+        CACHED_LSBLK_OUTPUT="$CACHED_LSBLK_OUTPUT" \
+        exec chroot -- "$chroot_dir" "/tmp/gentoo-install-repo/scripts/dispatch_chroot.sh" "$@" \
+        || { echo "Failed to chroot into '$chroot_dir'."; exit 1;} 
 }
 
 function bind_repo_dir() {
