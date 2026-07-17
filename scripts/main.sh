@@ -44,11 +44,10 @@ function main_install_gentoo_in_chroot() {
     env_update
 
     echo "Emerging sys-*"
-    try emerge --verbose sys-kernel/ugrd sys-apps/pciutils sys-fs/cryptsetup \
+    try emerge --ask --verbose --autounmask-continue sys-kernel/ugrd \
+        sys-apps/pciutils sys-fs/cryptsetup \
         sys-fs/btrfs-progs sys-fs/e2fsprogs sys-fs/dosfstools \
 	    sys-block/io-scheduler-udev-rules sys-apps/mlocate \
-        sys-boot/efibootmgr sys-kernel/installkernel \
-        sys-kernel/linux-firmware sys-firmware/sof-firmware \
 
     echo "Emerging tools"
     try emerge --verbose app-arch/zstd app-crypt/gnupg dev-vcs/git \
@@ -66,6 +65,12 @@ function main_install_gentoo_in_chroot() {
 
     generate_initramfs
 
+    echo "installing tools for kernel and firmware"
+    try emerge --verbose sys-boot/efibootmgr sys-kernel/installkernel \
+        sys-kernel/linux-firmware sys-firmware/sof-firmware \
+
+    emerge --config sys-kernel/gentoo-kernelvvvabort
+
     die "Test Completed"
 
 }
@@ -73,7 +78,7 @@ function main_install_gentoo_in_chroot() {
 function install_kernel() {
     echo "compile kernel"
 
-    try emerge --ask sys-kernel/gentoo-kernel
+    try emerge --autounmask-continue sys-kernel/gentoo-kernel
 } 
 
 function generate_initramfs() {
