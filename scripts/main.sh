@@ -58,17 +58,15 @@ function main_install_gentoo_in_chroot() {
 
     env_update
 
-    install_kernel
-
     generate_initramfs
+
+    install_kernel
 
     echo "Emerging tools"
     try emerge --verbose sys-fs/cryptsetup \
         sys-fs/btrfs-progs sys-fs/e2fsprogs sys-fs/dosfstools \
 	    sys-block/io-scheduler-udev-rules sys-apps/mlocate \
         app-arch/zstd app-crypt/gnupg dev-vcs/git \
-    
-    try emerge --oneshot --nodeps app-arch/cpio
 
     echo "Configure timezone"
     try emerge -v --config sys-libs/timezone-data
@@ -82,15 +80,23 @@ function main_install_gentoo_in_chroot() {
 
 function install_kernel() {
     echo "compile kernel"
-    try emerge sys-kernel/gentoo-kernel sys-apps/pciutils sys-kernel/installkernel \
+    try emerge --oneshot --nodeps app-arch/cpio
+    try emerge sys-kernel/installkernel
+    try emerge sys-kernel/gentoo-kernel sys-apps/pciutils \
         sys-kernel/linux-firmware sys-firmware/sof-firmware app-emulation/virt-firmware \
         app-portage/gentoolkit
 
-    echo "Compiling initramfs"
-    try emerge sys-kernel/ugrd sys-boot/efibootmgr
+    try emerge sys-boot/efibootmgr
+
 } 
 
 function generate_initramfs() {
+
+    echo "Compiling initramfs"
+    try emerge sys-kernel/ugrd
+
+    echo  "Generating initramfs"
+
     local efi_uuid="${CHROOT_EFI_UUID:-}"
     local root_uuid="${CHROOT_ROOT_UNDERLYING_UUID:-}"
     local swap_uuid="${CHROOT_SWAP_UNDERLYING_UUID:-}"
@@ -140,5 +146,7 @@ EOF
 
     einfo "ugrd configuration deployed to $config_file"
 
+    einfo "updating make.conf for kernel to use ugrd"
+    echo "DIST_KERNEL_INITRAMFS_GENERATOR=ugrd" >> /etc/portage/make.conf
 
 }
