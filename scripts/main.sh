@@ -4,6 +4,10 @@ function main_install() {
 
     bind_repo_dir
 
+    sleep 5
+    export_disk_uuids
+    sleep 5
+
     gentoo_chroot "$ROOT_MOUNTPOINT" "$GENTOO_INSTALL_REPO_BIND/install" __install_gentoo_in_chroot
 }
 
@@ -44,18 +48,78 @@ function main_install_gentoo_in_chroot() {
         sys-fs/btrfs-progs sys-fs/e2fsprogs sys-fs/dosfstools \
 	    sys-block/io-scheduler-udev-rules sys-apps/mlocate \
         sys-boot/efibootmgr sys-kernel/installkernel \
-        sys-kernel/linux-firmware sys-kernel/gentoo-kernel \
+        sys-kernel/linux-firmware sys-firmware/sof-firmware \
 
     echo "Emerging tools"
     try emerge --verbose app-arch/zstd app-crypt/gnupg dev-vcs/git \
-        app-portage/gentoolkit
+        app-portage/gentoolkit app-emulation/virt-firmware
     
     try emerge --oneshot --nodeps app-arch/cpio
 
     echo "Configure timezone"
     try emerge -v --config sys-libs/timezone-data
 
+    echo "Enable automated EFI"
+    try rc-update add kernel-bootcfg-boot-successful default
+
+    install_kernel
+
+    generate_initramfs
+
     die "Test Completed"
 
 }
 
+function install_kernel() {
+    echo "compile kernel"
+
+    try emerge --ask sys-kernel/gentoo-kernel
+} 
+
+function generate_initramfs() {
+    local efi_uuid="${CHROOT_EFI_UUID:-}"
+    local root_uuid="${CHROOT_ROOT_UNDERLYING_UUID:-}"
+    local swap_uuid="${CHROOT_SWAP_UNDERLYING_UUID:-}"
+
+    [[ -n "$efi_uuid" ]] || die "EFI UUID is empty"
+    [[ -n "$root_uuid" ]] || die "Root UUID is empty"
+    [[ -n "$swap_uuid" ]] || die "Swap UUID is empty"
+    
+    # Check for GPG keys in /efi (where fulldisk_encryption.sh actually puts them)
+    [[ -f "/efi/cryptroot_key.luks.gpg" ]] || die "GPG root key not found at /efi/cryptroot_key.luks.gpg"
+
+    local config_file="/etc/ugrd/config.toml"
+    mkdir -p "$(dirname "$config_file")"
+    
+    cat > "$config_file" << EOF
+modules = [
+    "ugrd.kmod.usb",
+    "ugrd.crypto.cryptsetup",
+    "ugrd.crypto.gpg",
+    "ugrd.fs.btrfs",
+]
+
+# Changed from /boot to /efi to match your fstab and disk layout
+auto_mounts = ['/efi']
+
+kmod_autodetect_lspci = true
+
+[mounts.efi]
+path = '/efi'
+uuid = "$efi_uuid"
+
+[cryptsetup.cryptroot]
+uuid = "$root_uuid"
+key_type = "gpg"
+key_file = "/efi/cryptroot_key.luks.gpg"
+
+root_subvol="BTROOT"
+
+[cryptsetup.cryptswap]
+uuid = "$swap_uuid"
+key_type = "gpg"
+key_file = "/efi/cryptswap_key.luks.gpg"
+EOF
+
+    einfo "ugrd configuration deployed to $config_file"
+}

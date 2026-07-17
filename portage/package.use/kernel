@@ -1,1 +1,1 @@
-sys-kernel/installkernel -systemd efistub ugrd
+sys-kernel/installkernel efistub ugrd

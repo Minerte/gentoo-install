@@ -481,6 +481,9 @@ function gentoo_chroot () {
         DEBUGINFOD_IMA_CERT_PATH="" \
         TMP_DIR="$TMP_DIR" \
         CACHED_LSBLK_OUTPUT="$CACHED_LSBLK_OUTPUT" \
+        CHROOT_EFI_UUID="$CHROOT_EFI_UUID" \
+        CHROOT_ROOT_UNDERLYING_UUID="$CHROOT_ROOT_UNDERLYING_UUID" \
+        CHROOT_SWAP_UNDERLYING_UUID="$CHROOT_SWAP_UNDERLYING_UUID" \
         exec chroot -- "$chroot_dir" "$CHROOT_SCRIPT_PATH" "$@" \
         || { echo "Failed to chroot into '$chroot_dir'."; exit 1;} 
 }
@@ -518,4 +521,22 @@ function mount_efivars() {
 	mount -o remount,rw -t efivarfs efivarfs /sys/firmware/efi/efivars \
 		|| { echo "Could not mount efivarfs"; exit 1;}
 
+}
+
+function export_disk_uuids() {
+    einfo "Resolving disk UUIDs on host for chroot environment"
+    
+    # 1. EFI UUID (FAT32 filesystem)
+    export CHROOT_EFI_UUID="$(blkid -s UUID -o value "$EFI_PART")"
+    [[ -n "$CHROOT_EFI_UUID" ]] || die "Failed to resolve EFI UUID for $EFI_PART"
+    
+    # 2. Root UUID (Underlying LUKS partition, NOT the mapped btrfs)
+    export CHROOT_ROOT_UNDERLYING_UUID="$(blkid -s UUID -o value "$ROOT_PART")"
+    [[ -n "$CHROOT_ROOT_UNDERLYING_UUID" ]] || die "Failed to resolve underlying root UUID for $ROOT_PART"
+    
+    # 3. Swap UUID (Underlying LUKS partition)
+    export CHROOT_SWAP_UNDERLYING_UUID="$(blkid -s UUID -o value "$SWAP_PART")"
+    [[ -n "$CHROOT_SWAP_UNDERLYING_UUID" ]] || die "Failed to resolve underlying swap UUID for $SWAP_PART"
+
+    einfo "Disk UUIDs resolved successfully"
 }
