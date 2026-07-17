@@ -8,6 +8,11 @@ function main_install() {
     export_disk_uuids
     sleep 5
 
+    # After disk_format and stage3, ensure /mnt/gentoo/efi is mounted
+    if ! mountpoint -q "$ROOT_MOUNTPOINT/efi"; then
+        die "EFI partition is not mounted at $ROOT_MOUNTPOINT/efi!"
+    fi
+
     gentoo_chroot "$ROOT_MOUNTPOINT" "$GENTOO_INSTALL_REPO_BIND/install" __install_gentoo_in_chroot
 }
 
@@ -38,20 +43,30 @@ function install_stage3() {
 function main_install_gentoo_in_chroot() {
     echo "we are in chroot"
 
+    echo "mounting $EFI_PART to /efi"
+    if ! mountpoint -q /efi; then
+        mount /dev/disk/by-uuid/"$CHROOT_EFI_UUID" /efi || die "Could not mount EFI by UUID"
+        einfo "EFI mounted at /efi"
+        sleep 5
+    else
+        einfo "EFI already mounted at /efi"
+        sleep 5
+    fi
+
     echo "Syncing to DB"
     try emerge --sync --quiet
 
     env_update
 
-    echo "Emerging sys-*"
-    try emerge --ask --verbose --autounmask-continue sys-kernel/ugrd \
-        sys-apps/pciutils sys-fs/cryptsetup \
-        sys-fs/btrfs-progs sys-fs/e2fsprogs sys-fs/dosfstools \
-	    sys-block/io-scheduler-udev-rules sys-apps/mlocate \
+    install_kernel
+
+    generate_initramfs
 
     echo "Emerging tools"
-    try emerge --verbose app-arch/zstd app-crypt/gnupg dev-vcs/git \
-        app-portage/gentoolkit app-emulation/virt-firmware
+    try emerge --verbose sys-fs/cryptsetup \
+        sys-fs/btrfs-progs sys-fs/e2fsprogs sys-fs/dosfstools \
+	    sys-block/io-scheduler-udev-rules sys-apps/mlocate \
+        app-arch/zstd app-crypt/gnupg dev-vcs/git \
     
     try emerge --oneshot --nodeps app-arch/cpio
 
@@ -61,24 +76,18 @@ function main_install_gentoo_in_chroot() {
     echo "Enable automated EFI"
     try rc-update add kernel-bootcfg-boot-successful default
 
-    install_kernel
-
-    generate_initramfs
-
-    echo "installing tools for kernel and firmware"
-    try emerge --verbose sys-boot/efibootmgr sys-kernel/installkernel \
-        sys-kernel/linux-firmware sys-firmware/sof-firmware \
-
-    emerge --config sys-kernel/gentoo-kernelvvvabort
-
     die "Test Completed"
 
 }
 
 function install_kernel() {
     echo "compile kernel"
+    try emerge sys-kernel/gentoo-kernel sys-apps/pciutils sys-kernel/installkernel \
+        sys-kernel/linux-firmware sys-firmware/sof-firmware app-emulation/virt-firmware \
+        app-portage/gentoolkit
 
-    try emerge --autounmask-continue sys-kernel/gentoo-kernel
+    echo "Compiling initramfs"
+    try emerge sys-kernel/ugrd sys-boot/efibootmgr
 } 
 
 function generate_initramfs() {
@@ -98,16 +107,19 @@ function generate_initramfs() {
     
     cat > "$config_file" << EOF
 modules = [
+    "ugrd.base.console"
     "ugrd.kmod.usb",
     "ugrd.crypto.cryptsetup",
     "ugrd.crypto.gpg",
     "ugrd.fs.btrfs",
 ]
 
+pio_compression = "zstd"
+kmod_autodetect_lspci = true
+
+
 # Changed from /boot to /efi to match your fstab and disk layout
 auto_mounts = ['/efi']
-
-kmod_autodetect_lspci = true
 
 [mounts.efi]
 path = '/efi'
@@ -127,4 +139,6 @@ key_file = "/efi/cryptswap_key.luks.gpg"
 EOF
 
     einfo "ugrd configuration deployed to $config_file"
+
+
 }

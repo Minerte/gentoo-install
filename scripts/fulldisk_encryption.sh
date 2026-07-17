@@ -211,16 +211,24 @@ function disk_format() {
     export GPG_TTY=$(tty)
 
     echo "Change DIR to ESP"
-    mkdir -p "$BTRFS_TEMP_MOUNT"
-    mkdir -p "$ROOT_MOUNTPOINT"
+    mkdir -p "$BTRFS_TEMP_MOUNT" || die "Could not create dir $BTRFS_TEMP_MOUNT"
+    mkdir -p "$ROOT_MOUNTPOINT" || die "Could not create dir $ROOT_MOUNTPOINT"
     MOUNT_EFI="$ROOT_MOUNTPOINT/efi"
-    mkdir -p "$MOUNT_EFI"
-    mount "$EFI_PART" "$MOUNT_EFI"
-    cd "$MOUNT_EFI" || { echo "Failed to change dir to $MOUNT_EFI"; exit 1;}
+    mkdir -p "$MOUNT_EFI" || die "Could not create dir $MOUNT_EFI"
+    mount "$EFI_PART" "$MOUNT_EFI" || die "Failed to mount $EFI_PART to $MOUNT_EFI"
+
+    cd "$MOUNT_EFI" || die "Failed to change dir to $MOUNT_EFI"
 
     echo "Creating encryption for swap"
     dd bs=8388608 count=1 if=/dev/urandom | gpg --symmetric --cipher-algo AES256 --output cryptswap_key.luks.gpg \
 		|| { echo "Could not generate GPG encrypted swap keyfile"; exit 1;}
+
+    if [[ -f "cryptswap_key.luks.gpg" ]]; then
+        einfo "cryptswap_key.luks.gpg created (size: $(stat -c %s cryptswap_key.luks.gpg) bytes)"
+    else
+        die "cryptswap_key.luks.gpg was not created!"
+    fi
+
     # Use the GPG keyfile to format LUKS partition
 	# Pipe decrypted key directly to cryptsetup (never stored unencrypted on disk)
 	gpg --batch --yes --decrypt cryptswap_key.luks.gpg | cryptsetup luksFormat \
@@ -252,6 +260,12 @@ function disk_format() {
     echo "Creating encryption for root"
 	dd bs=8388608 count=1 if=/dev/urandom | gpg --symmetric --cipher-algo AES256 --output cryptroot_key.luks.gpg \
 		|| { echo "Could not generate GPG encrypted root keyfile"; exit 1;}
+
+    if [[ -f "cryptroot_key.luks.gpg" ]]; then
+        einfo "cryptroot_key.luks.gpg created (size: $(stat -c %s cryptroot_key.luks.gpg) bytes)"
+    else
+        die "cryptroot_key.luks.gpg was not created!"
+    fi
 
     # Use the GPG keyfile to format LUKS partition
 	# Pipe decrypted key directly to cryptsetup (never stored unencrypted on disk)
@@ -358,8 +372,8 @@ function stage3() {
             || { echo "Checksum mismatch! sha512sum"; exit 1;}
 	fi
 
-	echo "sleep... 20 seconds"
-	sleep 20
+	echo "sleep... 5 seconds"
+	sleep 5
 
     echo "Extracting Stage 3 tarball"
     tar xpvf "${CURRENT_STAGE3}" --xattrs-include='*.*' --numeric-owner -C /mnt/gentoo \
@@ -527,15 +541,18 @@ function export_disk_uuids() {
     einfo "Resolving disk UUIDs on host for chroot environment"
     
     # 1. EFI UUID (FAT32 filesystem)
-    export CHROOT_EFI_UUID="$(blkid -s UUID -o value "$EFI_PART")"
+    CHROOT_EFI_UUID="$(blkid -s UUID -o value "$EFI_PART")"
+    export CHROOT_EFI_UUID
     [[ -n "$CHROOT_EFI_UUID" ]] || die "Failed to resolve EFI UUID for $EFI_PART"
     
     # 2. Root UUID (Underlying LUKS partition, NOT the mapped btrfs)
-    export CHROOT_ROOT_UNDERLYING_UUID="$(blkid -s UUID -o value "$ROOT_PART")"
+    CHROOT_ROOT_UNDERLYING_UUID="$(blkid -s UUID -o value "$ROOT_PART")"
+    export CHROOT_ROOT_UNDERLYING_UUID
     [[ -n "$CHROOT_ROOT_UNDERLYING_UUID" ]] || die "Failed to resolve underlying root UUID for $ROOT_PART"
     
     # 3. Swap UUID (Underlying LUKS partition)
-    export CHROOT_SWAP_UNDERLYING_UUID="$(blkid -s UUID -o value "$SWAP_PART")"
+    CHROOT_SWAP_UNDERLYING_UUID="$(blkid -s UUID -o value "$SWAP_PART")"
+    export CHROOT_SWAP_UNDERLYING_UUID
     [[ -n "$CHROOT_SWAP_UNDERLYING_UUID" ]] || die "Failed to resolve underlying swap UUID for $SWAP_PART"
 
     einfo "Disk UUIDs resolved successfully"
