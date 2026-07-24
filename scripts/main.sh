@@ -80,7 +80,7 @@ function main_install_gentoo_in_chroot() {
 
 function install_kernel() {
     echo "compile kernel"
-    try emerge --oneshot --nodeps app-arch/cpio
+    ry emerge --oneshot --nodeps app-arch/cpio
     try emerge sys-kernel/installkernel
     try emerge sys-kernel/gentoo-kernel sys-apps/pciutils \
         sys-kernel/linux-firmware sys-firmware/sof-firmware app-emulation/virt-firmware \
@@ -147,6 +147,10 @@ EOF
     einfo "ugrd configuration deployed to $config_file"
 
     einfo "updating make.conf for kernel to use ugrd"
+
+    # THIS failed becuase of spacing issue in make.conf
+    # just add it to make.conf and then uncomment it
+    # test sys-kernel/gentoo-kernel -initramfs
     echo "DIST_KERNEL_INITRAMFS_GENERATOR=ugrd" >> /etc/portage/make.conf
 
 }
