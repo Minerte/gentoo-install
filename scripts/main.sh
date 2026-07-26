@@ -48,10 +48,27 @@ function main_install_gentoo_in_chroot() {
         mount /dev/disk/by-uuid/"$CHROOT_EFI_UUID" /efi || die "Could not mount EFI by UUID"
         einfo "EFI mounted at /efi"
         sleep 5
+        mkdir -p /efi/Gentoo
+        einfo "/efi/Gentoo created"
     else
         einfo "EFI already mounted at /efi"
         sleep 5
     fi
+
+    # FIX: Ensure /efi is mounted on boot (GPG keys live here)
+    if ! grep -q "/efi" /etc/fstab; then
+        echo "UUID=$CHROOT_EFI_UUID  /efi  vfat  defaults,noatime  0 2" >> /etc/fstab
+    fi
+
+    # FIX: Kernel command line for uefi-mkconfig / ugrd / LUKS root
+    mkdir -p /etc/kernel
+    cat > /etc/kernel/cmdline << 'EOF'
+root=/dev/mapper/cryptroot rootfstype=btrfs rootflags=subvol=activeroot
+EOF
+
+    # FIX: Explicit USE flags so installkernel knows we want efistub + ugrd
+    mkdir -p /etc/portage/package.use
+    echo "sys-kernel/installkernel efistub ugrd" > /etc/portage/package.use/installkernel
 
     echo "Syncing to DB"
     try emerge --sync --quiet
@@ -71,23 +88,22 @@ function main_install_gentoo_in_chroot() {
     echo "Configure timezone"
     try emerge -v --config sys-libs/timezone-data
 
-    echo "Enable automated EFI"
-    try rc-update add kernel-bootcfg-boot-successful default
-
     die "Test Completed"
 
 }
 
 function install_kernel() {
     echo "compile kernel"
-    ry emerge --oneshot --nodeps app-arch/cpio
-    try emerge sys-kernel/installkernel
-    try emerge sys-kernel/gentoo-kernel sys-apps/pciutils \
-        sys-kernel/linux-firmware sys-firmware/sof-firmware app-emulation/virt-firmware \
-        app-portage/gentoolkit
+    try emerge --oneshot --nodeps app-arch/cpio
 
+    # Install efibootmgr first so uefi-mkconfig can use it
     try emerge sys-boot/efibootmgr
 
+    try emerge sys-kernel/installkernel
+
+    try emerge sys-kernel/gentoo-kernel sys-apps/pciutils \
+        sys-kernel/linux-firmware sys-firmware/sof-firmware \
+        app-portage/gentoolkit
 } 
 
 function generate_initramfs() {
@@ -136,7 +152,7 @@ uuid = "$root_uuid"
 key_type = "gpg"
 key_file = "/efi/cryptroot_key.luks.gpg"
 
-root_subvol="BTROOT"
+root_subvol="activeroot"
 
 [cryptsetup.cryptswap]
 uuid = "$swap_uuid"
@@ -151,6 +167,5 @@ EOF
     # THIS failed becuase of spacing issue in make.conf
     # just add it to make.conf and then uncomment it
     # test sys-kernel/gentoo-kernel -initramfs
-    echo "DIST_KERNEL_INITRAMFS_GENERATOR=ugrd" >> /etc/portage/make.conf
 
 }
