@@ -73,6 +73,12 @@ EOF
     echo "Syncing to DB"
     try emerge --sync --quiet
 
+    echo "merging filesystem"
+    try emerge --verbose sys-fs/cryptsetup ys-fs/btrfs-progs \
+        sys-fs/e2fsprogs sys-fs/dosfstools
+    
+    try emerge --verbose app-arch/zstd app-crypt/gnupg
+
     env_update
 
     generate_initramfs
@@ -80,10 +86,8 @@ EOF
     install_kernel
 
     echo "Emerging tools"
-    try emerge --verbose sys-fs/cryptsetup \
-        sys-fs/btrfs-progs sys-fs/e2fsprogs sys-fs/dosfstools \
-	    sys-block/io-scheduler-udev-rules sys-apps/mlocate \
-        app-arch/zstd app-crypt/gnupg dev-vcs/git \
+    try emerge --verbose sys-block/io-scheduler-udev-rules \
+    sys-apps/mlocate dev-vcs/git 
 
     echo "Configure timezone"
     try emerge -v --config sys-libs/timezone-data
@@ -99,17 +103,18 @@ function install_kernel() {
     # Install efibootmgr first so uefi-mkconfig can use it
     try emerge sys-boot/efibootmgr
 
-    try emerge sys-kernel/installkernel
+    try emerge sys-kernel/installkernel sys-kernel/linux-firmware
 
-    try emerge sys-kernel/gentoo-kernel sys-apps/pciutils \
+    try emerge --verbose sys-kernel/gentoo-kernel sys-apps/pciutils \
         sys-kernel/linux-firmware sys-firmware/sof-firmware \
         app-portage/gentoolkit
+
+        # Change to gentoo-sources kernel 
 } 
 
 function generate_initramfs() {
-
     echo "Compiling initramfs"
-    try emerge sys-kernel/ugrd
+    try emerge --verbose sys-kernel/ugrd
 
     echo  "Generating initramfs"
 
@@ -129,16 +134,18 @@ function generate_initramfs() {
     
     cat > "$config_file" << EOF
 modules = [
-    "ugrd.base.console"
+    "ugrd.base.console",
     "ugrd.kmod.usb",
     "ugrd.crypto.cryptsetup",
     "ugrd.crypto.gpg",
-    "ugrd.fs.btrfs",
+    "ugrd.fs.btrfs"
 ]
 
+subvol_selector = true
 pio_compression = "zstd"
-kmod_autodetect_lspci = true
+# kmod_autodetect_lspci = true
 
+kmod_init = ["dm_crypt", "nvme", "btrfs", "xhci_pci", "usb_storage", "vfat"]
 
 # Changed from /boot to /efi to match your fstab and disk layout
 auto_mounts = ['/efi']
@@ -151,8 +158,6 @@ uuid = "$efi_uuid"
 uuid = "$root_uuid"
 key_type = "gpg"
 key_file = "/efi/cryptroot_key.luks.gpg"
-
-root_subvol="activeroot"
 
 [cryptsetup.cryptswap]
 uuid = "$swap_uuid"
@@ -167,5 +172,7 @@ EOF
     # THIS failed becuase of spacing issue in make.conf
     # just add it to make.conf and then uncomment it
     # test sys-kernel/gentoo-kernel -initramfs
+
+    ugrd --kver 6.18.29-gentoo-dist-hardened /efi/initramfs-6.18.39-hardened.img
 
 }
