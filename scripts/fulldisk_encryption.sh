@@ -496,7 +496,9 @@ function gentoo_chroot () {
         TMP_DIR="$TMP_DIR" \
         CACHED_LSBLK_OUTPUT="$CACHED_LSBLK_OUTPUT" \
         CHROOT_EFI_UUID="$CHROOT_EFI_UUID" \
+        CHROOT_ROOT_UUID="$CHROOT_ROOT_UUID" \
         CHROOT_ROOT_UNDERLYING_UUID="$CHROOT_ROOT_UNDERLYING_UUID" \
+        CHROOT_SWAP_UUID="$CHROOT_SWAP_UUID" \
         CHROOT_SWAP_UNDERLYING_UUID="$CHROOT_SWAP_UNDERLYING_UUID" \
         exec chroot -- "$chroot_dir" "$CHROOT_SCRIPT_PATH" "$@" \
         || { echo "Failed to chroot into '$chroot_dir'."; exit 1;} 
@@ -545,15 +547,30 @@ function export_disk_uuids() {
     export CHROOT_EFI_UUID
     [[ -n "$CHROOT_EFI_UUID" ]] || die "Failed to resolve EFI UUID for $EFI_PART"
     
-    # 2. Root UUID (Underlying LUKS partition, NOT the mapped btrfs)
+    # 2. Root underlying LUKS partition UUID (for rd.luks.uuid=)
     CHROOT_ROOT_UNDERLYING_UUID="$(blkid -s UUID -o value "$ROOT_PART")"
     export CHROOT_ROOT_UNDERLYING_UUID
     [[ -n "$CHROOT_ROOT_UNDERLYING_UUID" ]] || die "Failed to resolve underlying root UUID for $ROOT_PART"
+
+    # 2b. Root BTRFS filesystem UUID inside decrypted LUKS (for root=)
+    CHROOT_ROOT_UUID="$(blkid -s UUID -o value "/dev/mapper/$LUKS_ROOT_NAME")"
+    export CHROOT_ROOT_UUID
+    [[ -n "$CHROOT_ROOT_UUID" ]] || die "Failed to resolve root BTRFS UUID for /dev/mapper/$LUKS_ROOT_NAME"
     
-    # 3. Swap UUID (Underlying LUKS partition)
+    # 3. Swap underlying LUKS partition UUID
     CHROOT_SWAP_UNDERLYING_UUID="$(blkid -s UUID -o value "$SWAP_PART")"
     export CHROOT_SWAP_UNDERLYING_UUID
     [[ -n "$CHROOT_SWAP_UNDERLYING_UUID" ]] || die "Failed to resolve underlying swap UUID for $SWAP_PART"
 
+    # 3b. Swap filesystem UUID inside decrypted LUKS (for resume=)
+    CHROOT_SWAP_UUID="$(blkid -s UUID -o value "/dev/mapper/$LUKS_SWAP_NAME")"
+    export CHROOT_SWAP_UUID
+    [[ -n "$CHROOT_SWAP_UUID" ]] || die "Failed to resolve swap UUID for /dev/mapper/$LUKS_SWAP_NAME"
+
     einfo "Disk UUIDs resolved successfully"
+    einfo "  EFI:           $CHROOT_EFI_UUID"
+    einfo "  Root LUKS:     $CHROOT_ROOT_UNDERLYING_UUID"
+    einfo "  Root BTRFS:    $CHROOT_ROOT_UUID"
+    einfo "  Swap LUKS:     $CHROOT_SWAP_UNDERLYING_UUID"
+    einfo "  Swap:          $CHROOT_SWAP_UUID"
 }

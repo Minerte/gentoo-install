@@ -48,7 +48,7 @@ function main_install_gentoo_in_chroot() {
         mount /dev/disk/by-uuid/"$CHROOT_EFI_UUID" /efi || die "Could not mount EFI by UUID"
         einfo "EFI mounted at /efi"
         sleep 5
-        mkdir -p /efi/Gentoo
+        mkdir -p /efi/EFI/Gentoo
         einfo "/efi/Gentoo created"
     else
         einfo "EFI already mounted at /efi"
@@ -81,9 +81,9 @@ EOF
 
     env_update
 
-    install_kernel
-
     generate_initramfs
+
+    install_kernel
 
     echo "Emerging tools"
     try emerge --verbose sys-block/io-scheduler-udev-rules \
@@ -123,8 +123,10 @@ function install_kernel() {
     if [[ -f /proc/config.gz ]]; then
         zcat /proc/config.gz > .config
         make olddefconfig || die "make olddefconfig failed"
+        sleep 5
     else
         make defconfig || die "make defconfig failed"
+        sleep 5
     fi
     
     # Enable essentials for LUKS + Btrfs + EFI stub booting
@@ -210,6 +212,30 @@ function install_kernel() {
         # ./scripts/config --module CONFIG_NVME_TARGET_TCP
         # ./scripts/config --module CONFIG_NVME_TARGET_AUTH
 
+        # Kernel Command
+        # Kernel Command - auto-detect UUIDs from chroot environment
+        local root_uuid="${CHROOT_ROOT_UUID:-}"
+        local root_luks_uuid="${CHROOT_ROOT_UNDERLYING_UUID:-}"
+        local swap_uuid="${CHROOT_SWAP_UUID:-}"
+
+        [[ -n "$root_uuid" ]] || die "CHROOT_ROOT_UUID is empty - cannot set root= in kernel cmdline"
+        [[ -n "$root_luks_uuid" ]] || die "CHROOT_ROOT_UNDERLYING_UUID is empty - cannot set rd.luks.uuid="
+
+        local kernel_cmdline="root=UUID=${root_uuid} rd.luks.uuid=${root_luks_uuid} ro"
+
+        # Add resume for hibernation if swap UUID was detected
+        if [[ -n "$swap_uuid" ]]; then
+            kernel_cmdline+=" resume=UUID=${swap_uuid}"
+        fi
+
+        einfo "Setting kernel cmdline: $kernel_cmdline"
+
+        ./scripts/config --enable CONFIG_CMDLINE_BOOL
+        ./scripts/config --set-str CONFIG_CMDLINE "$kernel_cmdline"
+        ./scripts/config --enable CONFIG_CMDLINE_EXTEND
+        # OR
+        # ./scripts/config --enable CONFIG_CMDLINE_FORCE    # Kernel cmdline overrides everything
+
         # extra
         ./scripts/config --enable CONFIG_DM_INIT
         ./scripts/config --enable CONFIG_DAX
@@ -218,14 +244,19 @@ function install_kernel() {
         make olddefconfig || die "make olddefconfig failed after scripts/config"
     fi
     
+    cp /usr/src/linux/arch/x86_64/boot/bzImage /efi/EFI/Gentoo/vmlinuz-6.18.39-gentoo.efi
+
     echo "Compiling kernel with ${NPROC} jobs"
     make -j"${NPROC}" || die "Kernel compilation failed"
+    sleep 3
     
     echo "Installing modules"
     make modules_install || die "make modules_install failed"
+    sleep 3
     
     echo "Installing kernel (triggers installkernel hooks -> ugrd -> uefi-mkconfig)"
     make install || die "make install failed"
+    sleep 3
 
     cd \
         || die "Could not change to root dir"
@@ -290,11 +321,12 @@ EOF
     # just add it to make.conf and then uncomment it
     # test sys-kernel/gentoo-kernel -initramfs
 
-    try ugrd --kver 6.18.29-gentoo-dist-hardened /efi/initramfs-6.18.39-hardened.img
+    # Dont need anymore for install-kernel generates it
+    # try ugrd --kver 6.18.39-gentoo-dist-hardened /efi/initramfs-6.18.39-hardened.img
 
 }
 
-# efibootmgr --create --disk /dev/nvme0n1 --part 1 \
+# efibootmgr --create --disk ${EFI} --part 1 \
 #   --label "Gentoo" \
 #   --loader "\vmlinuz-6.x.y-gentoo.efi" \
 #   --unicode "initrd=\initramfs-6.x.y-gentoo.img root=UUID=<your-btrfs-uuid> rd.luks.uuid=<your-luks-uuid> ro"
