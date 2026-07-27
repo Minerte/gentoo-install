@@ -116,7 +116,7 @@ function install_kernel() {
     try eselect kernel set 1 \
         || die "Could not select kernel source"
 
-    cd /usr/linux/ \
+    cd /usr/src/linux \
         || die "could not change to /usr/linux" 
 
     # Seed config from the live environment if available
@@ -226,6 +226,9 @@ function install_kernel() {
     
     echo "Installing kernel (triggers installkernel hooks -> ugrd -> uefi-mkconfig)"
     make install || die "make install failed"
+
+    cd \
+        || die "Could not change to root dir"
 } 
 
 function generate_initramfs() {
