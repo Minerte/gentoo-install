@@ -128,15 +128,10 @@ function install_kernel() {
     cd /usr/src/linux \
         || die "could not change to /usr/linux"
 
-    # Seed config from the live environment if available
-    if [[ -f /proc/config.gz ]]; then
-        zcat /proc/config.gz > .config
-        make olddefconfig || die "make olddefconfig failed"
+        echo "defconfig dubug message only"
         sleep 5
-    else
         make defconfig || die "make defconfig failed"
         sleep 5
-    fi
 
     # Enable essentials for LUKS + Btrfs + EFI stub booting
     if [[ -f scripts/config ]]; then
@@ -264,9 +259,9 @@ function install_kernel() {
         # Verify again
         grep -q '^CONFIG_BTRFS_FS_COMPRESS_ZSTD=y' .config \
             || die "CONFIG_BTRFS_FS_COMPRESS_ZSTD still not built-in after fix"
-        
+
     fi
-    
+
     echo "Compiling kernel with ${NPROC} jobs"
     make -j"${NPROC}" || die "Kernel compilation failed"
     sleep 3
