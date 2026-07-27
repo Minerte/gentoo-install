@@ -302,6 +302,7 @@ modules = [
     "ugrd.fs.btrfs"
 ]
 
+subvol_selector = true
 kmod_autodetect_lspci = true
 
 # Changed from /boot to /efi to match your fstab and disk layout
@@ -397,6 +398,7 @@ function setup_efistub_boot() {
 
     local cmdline="root=UUID=${root_uuid} rd.luks.uuid=${root_luks_uuid} ro"
     [[ -n "$swap_uuid" ]] && cmdline+=" resume=UUID=${swap_uuid}"
+    cmdline+=" rootflags=subvol=activeroot"
 
     einfo "Kernel cmdline: $cmdline"
 
