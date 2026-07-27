@@ -78,7 +78,7 @@ EOF
     echo "merging filesystem"
     try emerge --verbose sys-fs/cryptsetup sys-fs/btrfs-progs \
         sys-fs/e2fsprogs sys-fs/dosfstools
-    
+
     try emerge --verbose app-arch/zstd app-crypt/gnupg
 
     try emerge --verbose net-misc/networkmanager app-shells/bash-completion net-misc/chrony
@@ -93,7 +93,7 @@ EOF
 
     echo "Emerging tools"
     try emerge --verbose sys-block/io-scheduler-udev-rules \
-    sys-apps/mlocate dev-vcs/git 
+    sys-apps/mlocate dev-vcs/git
 
     echo "Configure timezone"
     try emerge -v --config sys-libs/timezone-data
@@ -126,7 +126,7 @@ function install_kernel() {
         || die "Could not select kernel source"
 
     cd /usr/src/linux \
-        || die "could not change to /usr/linux" 
+        || die "could not change to /usr/linux"
 
     # Seed config from the live environment if available
     if [[ -f /proc/config.gz ]]; then
@@ -137,7 +137,7 @@ function install_kernel() {
         make defconfig || die "make defconfig failed"
         sleep 5
     fi
-    
+
     # Enable essentials for LUKS + Btrfs + EFI stub booting
     if [[ -f scripts/config ]]; then
         # BTRFS 
@@ -254,24 +254,27 @@ function install_kernel() {
         ./scripts/config --enable CONFIG_DAX
         ./scripts/config --enable CONFIG_RD_ZSTD
 
-        sleep 5
         make olddefconfig || die "make olddefconfig failed after scripts/config"
-        sleep 5
-        
-        # Verify
+
+        # Force CONFIG_BTRFS_FS_COMPRESS_ZSTD to y (dependencies are now resolved)
+        ./scripts/config --enable CONFIG_BTRFS_FS_COMPRESS_ZSTD
+        # Run oldconfig to apply the change without resetting it
+        make oldconfig || die "make oldconfig failed"
+
+        # Verify again
         grep -q '^CONFIG_BTRFS_FS_COMPRESS_ZSTD=y' .config \
-            || die "CONFIG_BTRFS_FS_COMPRESS_ZSTD still not built-in after dependency fix"
+            || die "CONFIG_BTRFS_FS_COMPRESS_ZSTD still not built-in after fix"
         
     fi
     
     echo "Compiling kernel with ${NPROC} jobs"
     make -j"${NPROC}" || die "Kernel compilation failed"
     sleep 3
-     
+
     echo "Installing modules"
     make modules_install || die "make modules_install failed"
     sleep 3
-    
+
     cp /usr/src/linux/arch/x86_64/boot/bzImage /efi/EFI/Gentoo/vmlinuz-6.18.39-gentoo.efi
 
     echo "Installing kernel (triggers installkernel hooks -> ugrd -> uefi-mkconfig)"
@@ -286,13 +289,15 @@ function install_kernel() {
 
     cd \
         || die "Could not change to root dir"
-} 
+}
 
 function generate_initramfs() {
     echo "Compiling initramfs"
     try emerge --verbose sys-kernel/ugrd
+    sleep 5
 
     echo  "Generating initramfs"
+    sleep 5
 
     local efi_uuid="${CHROOT_EFI_UUID:-}"
     local root_uuid="${CHROOT_ROOT_UNDERLYING_UUID:-}"
@@ -301,13 +306,13 @@ function generate_initramfs() {
     [[ -n "$efi_uuid" ]] || die "EFI UUID is empty"
     [[ -n "$root_uuid" ]] || die "Root UUID is empty"
     [[ -n "$swap_uuid" ]] || die "Swap UUID is empty"
-    
+
     # Check for GPG keys in /efi (where fulldisk_encryption.sh actually puts them)
     [[ -f "/efi/cryptroot_key.luks.gpg" ]] || die "GPG root key not found at /efi/cryptroot_key.luks.gpg"
 
     local config_file="/etc/ugrd/config.toml"
     mkdir -p "$(dirname "$config_file")"
-    
+
     cat > "$config_file" << EOF
 modules = [
     "ugrd.base.console",
@@ -397,7 +402,7 @@ function setup_efistub_boot() {
     efi_disk="/dev/$(lsblk -dno pkname "$efi_part_dev")"
     efi_partnum=$(cat "/sys/class/block/$(basename "$efi_part_dev")/partition" 2>/dev/null) \
         || efi_partnum=$(lsblk -no MAJ:MIN "$efi_part_dev" | awk -F: '{print $2}')
-    
+
     [[ -b "$efi_disk" ]] || die "Could not resolve EFI disk for $efi_part_dev"
     [[ "$efi_partnum" =~ ^[0-9]+$ ]] || die "Could not resolve EFI partition number"
 

@@ -122,37 +122,37 @@ function verify_partitions() {
     echo ""
     echo "Please review the partition layout below before formatting."
     echo ""
-    
+
     # 1. Show a clean tree view of the disks
     echo "--- Visual Layout (lsblk) ---"
     lsblk -o NAME,SIZE,TYPE,FSTYPE,MODEL $EFI_DISK $ROOT_DISK
     echo ""
-    
+
     # 2. Show detailed partition table for EFI disk
     echo "--- Detailed Info for EFI Disk ($EFI_DISK) ---"
     parted "$EFI_DISK" print
     echo ""
-    
+
     # 3. Show detailed partition table for Root/Swap disk
     echo "--- Detailed Info for Root/Swap Disk ($ROOT_DISK) ---"
     parted "$ROOT_DISK" print
     echo ""
-    
+
     echo "========================================================"
     echo "Expected Layout:"
     echo "  $EFI_DISK -> 1 partition (ESP, fat32, size: $EFI_SIZE)"
     echo "  $ROOT_DISK -> 2 partitions (1: linux-swap size: $SWAP_SIZE, 2: btrfs size: rest of disk)"
     echo "========================================================"
     echo ""
-    
+
     # Prompt for confirmation. Using 'yes' instead of 'y' prevents accidental Enter presses.
     read -p "Does the layout match your expectations? Type 'yes' to continue: " confirm
-    
+
     if [[ "$confirm" != "yes" ]]; then
         echo "Aborting script. No filesystems were created."
         exit 1
     fi
-    
+
     echo "Verification passed. Proceeding to filesystem creation..."
 }
 
@@ -244,7 +244,7 @@ function disk_format() {
 		        || { echo "Could not create luks on $SWAP_PART"; exit 1;}
 
 	sleep 5
-	
+
 	gpg --batch --yes --decrypt "cryptswap_key.luks.gpg" | cryptsetup open --type luks2 \
 			"$SWAP_PART" "$LUKS_SWAP_NAME" \
 			--key-file=- \
@@ -282,7 +282,7 @@ function disk_format() {
 		        || { echo "Could not create luks on $ROOT_PART"; exit 1;}
 
 	sleep 5
-	
+
 	gpg --batch --yes --decrypt cryptroot_key.luks.gpg \
 		| cryptsetup open --type luks2 \
 			"$ROOT_PART" "$LUKS_ROOT_NAME" \
@@ -362,10 +362,10 @@ function stage3() {
 
 		# Check hashes
         einfo "Verifying tarball integrity"
-        
+
         # 1. Isolate the SHA512 block, find the tar.xz line, and extract ONLY the raw alphanumeric hash
         raw_hash=$(grep -A 1 'SHA512' "${CURRENT_STAGE3}.DIGESTS" | grep 'tar.xz$' | head -n 1 | awk '{print $1}')
-        
+
         # 2. Reconstruct the exact string sha512sum expects: "<hash>  <exact_filename>" (MUST be two spaces!)
         clean_digest="${raw_hash}  ${CURRENT_STAGE3}"
         sha512sum --check <<< "$clean_digest" \
@@ -393,7 +393,6 @@ function stage3() {
 }
 
 function config_system_outside_chroot() {
-    
     ROOT_DEV=$(blkid -L BTROOT)
     if [[ -z "$ROOT_DEV" ]]; then
         echo "No partition with LABEL=BTROOT found. Exiting..."
@@ -401,7 +400,7 @@ function config_system_outside_chroot() {
     fi
     echo "Found BTROOT at $ROOT_DEV"
 
-    echo "Editing fstab" 
+    echo "Editing fstab"
     cat << EOF > /mnt/gentoo/etc/fstab || { echo "Failed to edit fstab with EOF"; exit 1; }
 #Swap
 /dev/mapper/cryptswap   none    swap    sw                                           0 0
@@ -510,7 +509,7 @@ function gentoo_chroot () {
         CHROOT_SWAP_UUID="$CHROOT_SWAP_UUID" \
         CHROOT_SWAP_UNDERLYING_UUID="$CHROOT_SWAP_UNDERLYING_UUID" \
         exec chroot -- "$chroot_dir" "$CHROOT_SCRIPT_PATH" "$@" \
-        || { echo "Failed to chroot into '$chroot_dir'."; exit 1;} 
+        || { echo "Failed to chroot into '$chroot_dir'."; exit 1;}
 }
 
 function bind_repo_dir() {
@@ -528,7 +527,7 @@ function bind_repo_dir() {
         || die "Could not create mountpoint directory '$GENTOO_INSTALL_REPO_BIND'"
     mount --bind "$GENTOO_INSTALL_REPO_DIR_ORIGINAL" "$GENTOO_INSTALL_REPO_BIND" \
         || die "Could not bind mount '$GENTOO_INSTALL_REPO_DIR_ORIGINAL' to '$GENTOO_INSTALL_REPO_BIND'"
-    
+
     # Verify the bind mount worked and the script exists
     if [[ ! -f "$GENTOO_INSTALL_REPO_BIND/scripts/dispatch_chroot.sh" ]]; then
         die "dispatch_chroot.sh not found in bind mount at $GENTOO_INSTALL_REPO_BIND/scripts/dispatch_chroot.sh"
@@ -550,12 +549,12 @@ function mount_efivars() {
 
 function export_disk_uuids() {
     einfo "Resolving disk UUIDs on host for chroot environment"
-    
+
     # 1. EFI UUID (FAT32 filesystem)
     CHROOT_EFI_UUID="$(blkid -s UUID -o value "$EFI_PART")"
     export CHROOT_EFI_UUID
     [[ -n "$CHROOT_EFI_UUID" ]] || die "Failed to resolve EFI UUID for $EFI_PART"
-    
+
     # 2. Root underlying LUKS partition UUID (for rd.luks.uuid=)
     CHROOT_ROOT_UNDERLYING_UUID="$(blkid -s UUID -o value "$ROOT_PART")"
     export CHROOT_ROOT_UNDERLYING_UUID
@@ -565,7 +564,7 @@ function export_disk_uuids() {
     CHROOT_ROOT_UUID="$(blkid -s UUID -o value "/dev/mapper/$LUKS_ROOT_NAME")"
     export CHROOT_ROOT_UUID
     [[ -n "$CHROOT_ROOT_UUID" ]] || die "Failed to resolve root BTRFS UUID for /dev/mapper/$LUKS_ROOT_NAME"
-    
+
     # 3. Swap underlying LUKS partition UUID
     CHROOT_SWAP_UNDERLYING_UUID="$(blkid -s UUID -o value "$SWAP_PART")"
     export CHROOT_SWAP_UNDERLYING_UUID
