@@ -135,14 +135,14 @@ function install_kernel() {
 
     # Enable essentials for LUKS + Btrfs + EFI stub booting
     if [[ -f scripts/config ]]; then
-        # BTRFS 
+        # BTRFS
         ./scripts/config --enable CONFIG_BTRFS_FS
         ./scripts/config --enable CONFIG_BTRFS_FS_POSIX_ACL
         ./scripts/config --enable CONFIG_BTRFS_FS_CHECK_INTEGRITY
         ./scripts/config --enable CONFIG_ZSTD_COMPRESS
         ./scripts/config --enable CONFIG_ZSTD_DECOMPRESS
 
-        # Crypt algorithms 
+        # Crypt algorithms
         ./scripts/config --enable CONFIG_DM_CRYPT
         ./scripts/config --enable CONFIG_CRYPTO_MANAGER
         ./scripts/config --enable CONFIG_CRYPTO_AES
@@ -308,7 +308,6 @@ modules = [
     "ugrd.fs.btrfs"
 ]
 
-subvol_selector = true
 pio_compression = "zstd"
 kmod_autodetect_lspci = true
 
