@@ -73,11 +73,15 @@ EOF
     echo "Syncing to DB"
     try emerge --sync --quiet
 
+    try emerge --oneshot sys-apps/openrc
+
     echo "merging filesystem"
     try emerge --verbose sys-fs/cryptsetup sys-fs/btrfs-progs \
         sys-fs/e2fsprogs sys-fs/dosfstools
     
     try emerge --verbose app-arch/zstd app-crypt/gnupg
+
+    try emerge --verbose net-misc/networkmanager app-shells/bash-completion net-misc/chrony
 
     env_update
 
@@ -85,12 +89,17 @@ EOF
 
     install_kernel
 
+    enable_service
+
     echo "Emerging tools"
     try emerge --verbose sys-block/io-scheduler-udev-rules \
     sys-apps/mlocate dev-vcs/git 
 
     echo "Configure timezone"
     try emerge -v --config sys-libs/timezone-data
+
+    echo "Set root password"
+    passwd
 
     die "Test Completed"
 
@@ -191,7 +200,7 @@ function install_kernel() {
         ./scripts/config --enable CONFIG_EFI_PARTITION
         ./scripts/config --enable CONFIG_EFI_RUNTIME_MAP
         ./scripts/config --enable CONFIG_EFI_STUB
-        ./scripts/config --enablr CONFIG_PROC_FS
+        ./scripts/config --enable CONFIG_PROC_FS
 
         # AMD platform (x670e / Ryzen 9950x)
         ./scripts/config --enable CONFIG_AMD_NB
@@ -235,7 +244,7 @@ function install_kernel() {
         ./scripts/config --enable CONFIG_CMDLINE_EXTEND
         # OR
         # ./scripts/config --enable CONFIG_CMDLINE_FORCE    # Kernel cmdline overrides everything
-
+        sleep 20
         # extra
         ./scripts/config --enable CONFIG_DM_INIT
         ./scripts/config --enable CONFIG_DAX
@@ -244,8 +253,6 @@ function install_kernel() {
         make olddefconfig || die "make olddefconfig failed after scripts/config"
     fi
     
-    cp /usr/src/linux/arch/x86_64/boot/bzImage /efi/EFI/Gentoo/vmlinuz-6.18.39-gentoo.efi
-
     echo "Compiling kernel with ${NPROC} jobs"
     make -j"${NPROC}" || die "Kernel compilation failed"
     sleep 3
@@ -254,9 +261,13 @@ function install_kernel() {
     make modules_install || die "make modules_install failed"
     sleep 3
     
+    cp /usr/src/linux/arch/x86_64/boot/bzImage /efi/EFI/Gentoo/vmlinuz-6.18.39-gentoo.efi
+
     echo "Installing kernel (triggers installkernel hooks -> ugrd -> uefi-mkconfig)"
     make install || die "make install failed"
     sleep 3
+
+    setup_efistub_boot
 
     cd \
         || die "Could not change to root dir"
@@ -292,7 +303,6 @@ modules = [
 ]
 
 subvol_selector = true
-pio_compression = "zstd"
 kmod_autodetect_lspci = true
 
 # Changed from /boot to /efi to match your fstab and disk layout
@@ -326,7 +336,96 @@ EOF
 
 }
 
-# efibootmgr --create --disk ${EFI} --part 1 \
-#   --label "Gentoo" \
-#   --loader "\vmlinuz-6.x.y-gentoo.efi" \
-#   --unicode "initrd=\initramfs-6.x.y-gentoo.img root=UUID=<your-btrfs-uuid> rd.luks.uuid=<your-luks-uuid> ro"
+function enable_service() {
+    echo "Enable services"
+
+    try rc-update add NetworkManager default
+    try rc-update add chronyd default
+}
+
+# just run efibootmgr and everything will work, dont change any in kernel for now
+# install openrc and other programs before the kernel compils
+
+function setup_efistub_boot() {
+    einfo "Setting up EFISTUB boot entry with efibootmgr"
+
+    # --- 1. Detect kernel version ---
+    local kver
+    kver=$(make -C /usr/src/linux -s kernelrelease 2>/dev/null) \
+        || kver=$(cat /usr/src/linux/include/config/kernel.release 2>/dev/null) \
+        || die "Could not detect kernel version from /usr/src/linux"
+
+    einfo "Detected kernel version: $kver"
+
+    # --- 2. Find the actual files on the ESP (installed by make install + ugrd) ---
+    local efi_vmlinuz efi_initramfs
+    efi_vmlinuz=$(find /efi -maxdepth 3 -name "vmlinuz-*" -printf '%P\n' 2>/dev/null | sort | tail -n1)
+    efi_initramfs=$(find /efi -maxdepth 3 -name "initramfs-*.img" -printf '%P\n' 2>/dev/null | sort | tail -n1)
+
+    [[ -n "$efi_vmlinuz" ]] || die "No vmlinuz found on /efi"
+    [[ -n "$efi_initramfs" ]] || ewarn "No initramfs found on /efi (continuing without initrd=)"
+
+    # Convert forward slashes to EFI backslashes
+    local loader_path initrd_path
+    loader_path="\EFI\${efi_vmlinuz//\//\\}"
+    [[ -n "$efi_initramfs" ]] && initrd_path="\\${efi_initramfs//\//\\}"
+
+    einfo "ESP loader:  $loader_path"
+    einfo "ESP initrd:  ${initrd_path:-<none>}"
+
+    # --- 3. Detect EFI disk and partition number from CHROOT_EFI_UUID ---
+    local efi_part_dev efi_disk efi_partnum
+    efi_part_dev=$(readlink -f "/dev/disk/by-uuid/${CHROOT_EFI_UUID}")
+    [[ -b "$efi_part_dev" ]] || die "EFI partition not found by UUID: $CHROOT_EFI_UUID"
+
+    efi_disk="/dev/$(lsblk -dno pkname "$efi_part_dev")"
+    efi_partnum=$(cat "/sys/class/block/$(basename "$efi_part_dev")/partition" 2>/dev/null) \
+        || efi_partnum=$(lsblk -no MAJ:MIN "$efi_part_dev" | awk -F: '{print $2}')
+    
+    [[ -b "$efi_disk" ]] || die "Could not resolve EFI disk for $efi_part_dev"
+    [[ "$efi_partnum" =~ ^[0-9]+$ ]] || die "Could not resolve EFI partition number"
+
+    einfo "EFI disk:    $efi_disk"
+    einfo "EFI part:    $efi_partnum"
+
+    # --- 4. Build kernel cmdline dynamically ---
+    local root_uuid="${CHROOT_ROOT_UUID:-}"
+    local root_luks_uuid="${CHROOT_ROOT_UNDERLYING_UUID:-}"
+    local swap_uuid="${CHROOT_SWAP_UUID:-}"
+
+    [[ -n "$root_uuid" ]] || die "CHROOT_ROOT_UUID is empty"
+    [[ -n "$root_luks_uuid" ]] || die "CHROOT_ROOT_UNDERLYING_UUID is empty"
+
+    local cmdline="root=UUID=${root_uuid} rd.luks.uuid=${root_luks_uuid} ro"
+    [[ -n "$swap_uuid" ]] && cmdline+=" resume=UUID=${swap_uuid}"
+
+    einfo "Kernel cmdline: $cmdline"
+
+    # --- 5. Clean up old Gentoo entries to avoid duplicates ---
+    local old_entries
+    old_entries=$(efibootmgr | awk '/Boot[0-9A-F]{4}\*? Gentoo/ {gsub(/Boot|\*/,"",$1); print $1}')
+    for entry in $old_entries; do
+        einfo "Removing old boot entry: Boot$entry"
+        efibootmgr --bootnum "$entry" --delete-bootnum >/dev/null 2>&1 || true
+    done
+
+    # --- 6. Create the new entry ---
+    local efiboot_args=(
+        --create
+        --disk "$efi_disk"
+        --part "$efi_partnum"
+        --label "Gentoo"
+        --loader "$loader_path"
+    )
+
+    if [[ -n "$initrd_path" ]]; then
+        efiboot_args+=(--unicode "initrd=${initrd_path} ${cmdline}")
+    else
+        efiboot_args+=(--unicode "$cmdline")
+    fi
+
+    efibootmgr "${efiboot_args[@]}" || die "efibootmgr failed to create boot entry"
+
+    einfo "EFISTUB boot entry created successfully"
+    efibootmgr | grep -i gentoo || true
+}
