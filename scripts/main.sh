@@ -139,7 +139,6 @@ function install_kernel() {
         ./scripts/config --enable CONFIG_BTRFS_FS
         ./scripts/config --enable CONFIG_BTRFS_FS_POSIX_ACL
         ./scripts/config --enable CONFIG_BTRFS_FS_CHECK_INTEGRITY
-        ./scripts/config --enable CONFIG_BTRFS_FS_COMPRESS_ZSTD
         ./scripts/config --enable CONFIG_ZSTD_COMPRESS
         ./scripts/config --enable CONFIG_ZSTD_DECOMPRESS
 
@@ -157,6 +156,7 @@ function install_kernel() {
         ./scripts/config --enable CONFIG_CRYPTO_USER_API_SKCIPHER
         ./scripts/config --enable CONFIG_CRYPTO_DRBG
         ./scripts/config --enable CONFIG_CRYPTO_JITTERENTROPY
+        ./scripts/config --enable CONFIG_CRYPTO_XXHASH
 
         # Device mapper
         ./scripts/config --enable CONFIG_MD
@@ -250,15 +250,6 @@ function install_kernel() {
         ./scripts/config --enable CONFIG_RD_ZSTD
 
         make olddefconfig || die "make olddefconfig failed after scripts/config"
-
-        # Force CONFIG_BTRFS_FS_COMPRESS_ZSTD to y (dependencies are now resolved)
-        ./scripts/config --enable CONFIG_BTRFS_FS_COMPRESS_ZSTD
-        # Run oldconfig to apply the change without resetting it
-        make oldconfig || die "make oldconfig failed"
-
-        # Verify again
-        grep -q '^CONFIG_BTRFS_FS_COMPRESS_ZSTD=y' .config \
-            || die "CONFIG_BTRFS_FS_COMPRESS_ZSTD still not built-in after fix"
 
     fi
 
