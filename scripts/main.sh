@@ -141,6 +141,7 @@ function install_kernel() {
         ./scripts/config --enable CONFIG_BTRFS_FS_CHECK_INTEGRITY
         ./scripts/config --enable CONFIG_ZSTD_COMPRESS
         ./scripts/config --enable CONFIG_ZSTD_DECOMPRESS
+        ./scripts/config --enable CONFIG_BTRFS_FS_COMPRESS
 
         # Crypt algorithms
         ./scripts/config --enable CONFIG_DM_CRYPT
@@ -308,7 +309,6 @@ modules = [
     "ugrd.fs.btrfs"
 ]
 
-pio_compression = "zstd"
 kmod_autodetect_lspci = true
 
 # Changed from /boot to /efi to match your fstab and disk layout
