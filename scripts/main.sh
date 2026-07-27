@@ -207,6 +207,8 @@ function install_kernel() {
         ./scripts/config --enable CONFIG_X86_AMD_PLATFORM_DEVICE
         ./scripts/config --enable CONFIG_AMD_PMC
 
+        sleep 10
+
         # NVME
         # ./scripts/config --module CONFIG_NVME_CORE
         # ./scripts/config --enable CONFIG_BLK_DEV_NVME
@@ -254,11 +256,19 @@ function install_kernel() {
 
         make olddefconfig || die "make olddefconfig failed after scripts/config"
     fi
+
+    # After make olddefconfig, verify critical options are built-in
+    if ! grep -q '^CONFIG_BTRFS_FS_COMPRESS_ZSTD=y' .config; then
+        die "Kernel config error: CONFIG_BTRFS_FS_COMPRESS_ZSTD is not built-in (y). Check your scripts/config command."
+    fi
+    if ! grep -q '^CONFIG_ZSTD_DECOMPRESS=y' .config; then
+        die "Kernel config error: CONFIG_ZSTD_DECOMPRESS is not built-in"
+    fi
     
     echo "Compiling kernel with ${NPROC} jobs"
     make -j"${NPROC}" || die "Kernel compilation failed"
     sleep 3
-    
+     
     echo "Installing modules"
     make modules_install || die "make modules_install failed"
     sleep 3
@@ -268,6 +278,10 @@ function install_kernel() {
     echo "Installing kernel (triggers installkernel hooks -> ugrd -> uefi-mkconfig)"
     make install || die "make install failed"
     sleep 3
+
+    ls -la /efi/initramfs-*.img
+    # Should show a recent timestamp
+    sleep 20
 
     setup_efistub_boot
 

@@ -378,8 +378,17 @@ function stage3() {
     echo "Extracting Stage 3 tarball"
     tar xpvf "${CURRENT_STAGE3}" --xattrs-include='*.*' --numeric-owner -C /mnt/gentoo \
         || { echo "Failed to extract $STAGE3_FILENAME to /mnt/gentoo"; exit 1; }
-    
-    echo "Stage 3 tarball extraction completed"
+
+    # --- Add this block ---
+    echo "Verifying Stage 3 extraction..."
+    if [[ ! -x /mnt/gentoo/sbin/init ]]; then
+        die "Stage 3 extraction incomplete: /mnt/gentoo/sbin/init is missing or not executable"
+    fi
+    ls -la /mnt/gentoo/sbin/init
+    file /mnt/gentoo/sbin/init
+    # --- End block ---
+
+    echo "Stage 3 tarball extraction completed" 
 
 }
 
