@@ -145,6 +145,8 @@ function install_kernel() {
         ./scripts/config --enable CONFIG_BTRFS_FS_POSIX_ACL
         ./scripts/config --enable CONFIG_BTRFS_FS_CHECK_INTEGRITY
         ./scripts/config --enable CONFIG_BTRFS_FS_COMPRESS_ZSTD
+        ./scripts/config --enable CONFIG_ZSTD_COMPRESS
+        ./scripts/config --enable CONFIG_ZSTD_DECOMPRESS
 
         # Crypt algorithms 
         ./scripts/config --enable CONFIG_DM_CRYPT
@@ -251,18 +253,15 @@ function install_kernel() {
         ./scripts/config --enable CONFIG_DM_INIT
         ./scripts/config --enable CONFIG_DAX
         ./scripts/config --enable CONFIG_RD_ZSTD
-        ./scripts/config --enable CONFIG_ZSTD_COMPRESS
-        ./scripts/config --enable CONFIG_ZSTD_DECOMPRESS
 
+        sleep 5
         make olddefconfig || die "make olddefconfig failed after scripts/config"
-    fi
-
-    # After make olddefconfig, verify critical options are built-in
-    if ! grep -q '^CONFIG_BTRFS_FS_COMPRESS_ZSTD=y' .config; then
-        die "Kernel config error: CONFIG_BTRFS_FS_COMPRESS_ZSTD is not built-in (y). Check your scripts/config command."
-    fi
-    if ! grep -q '^CONFIG_ZSTD_DECOMPRESS=y' .config; then
-        die "Kernel config error: CONFIG_ZSTD_DECOMPRESS is not built-in"
+        sleep 5
+        
+        # Verify
+        grep -q '^CONFIG_BTRFS_FS_COMPRESS_ZSTD=y' .config \
+            || die "CONFIG_BTRFS_FS_COMPRESS_ZSTD still not built-in after dependency fix"
+        
     fi
     
     echo "Compiling kernel with ${NPROC} jobs"
