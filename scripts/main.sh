@@ -302,7 +302,6 @@ modules = [
     "ugrd.fs.btrfs"
 ]
 
-subvol_selector = true
 kmod_autodetect_lspci = true
 
 # Changed from /boot to /efi to match your fstab and disk layout
