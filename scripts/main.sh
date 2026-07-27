@@ -74,16 +74,16 @@ EOF
     try emerge --sync --quiet
 
     echo "merging filesystem"
-    try emerge --verbose sys-fs/cryptsetup ys-fs/btrfs-progs \
+    try emerge --verbose sys-fs/cryptsetup sys-fs/btrfs-progs \
         sys-fs/e2fsprogs sys-fs/dosfstools
     
     try emerge --verbose app-arch/zstd app-crypt/gnupg
 
     env_update
 
-    generate_initramfs
-
     install_kernel
+
+    generate_initramfs
 
     echo "Emerging tools"
     try emerge --verbose sys-block/io-scheduler-udev-rules \
@@ -105,11 +105,127 @@ function install_kernel() {
 
     try emerge sys-kernel/installkernel sys-kernel/linux-firmware
 
-    try emerge --verbose sys-kernel/gentoo-kernel sys-apps/pciutils \
+    try emerge --verbose sys-kernel/gentoo-sources sys-apps/pciutils \
         sys-kernel/linux-firmware sys-firmware/sof-firmware \
         app-portage/gentoolkit
 
-        # Change to gentoo-sources kernel 
+    # Changes so we use gentoo-sources
+    # Need to reconfigure kernel and generateintramfs after kernel build
+
+    echo "Selecting kernel to set 1"
+    try eselect kernel set 1 \
+        || die "Could not select kernel source"
+
+    cd /usr/linux/ \
+        || die "could not change to /usr/linux" 
+
+    # Seed config from the live environment if available
+    if [[ -f /proc/config.gz ]]; then
+        zcat /proc/config.gz > .config
+        make olddefconfig || die "make olddefconfig failed"
+    else
+        make defconfig || die "make defconfig failed"
+    fi
+    
+    # Enable essentials for LUKS + Btrfs + EFI stub booting
+    if [[ -f scripts/config ]]; then
+        # BTRFS 
+        ./scripts/config --enable CONFIG_BTRFS_FS
+        ./scripts/config --enable CONFIG_BTRFS_FS_POSIX_ACL
+        ./scripts/config --enable CONFIG_BTRFS_FS_CHECK_INTEGRITY
+        ./scripts/config --module CONFIG_BTRFS_FS_COMPRESS_ZSTD
+
+        # Crypt algorithms 
+        ./scripts/config --enable CONFIG_DM_CRYPT
+        ./scripts/config --enable CONFIG_CRYPTO_MANAGER
+        ./scripts/config --enable CONFIG_CRYPTO_AES
+        ./scripts/config --enable CONFIG_CRYPTO_XTS
+        ./scripts/config --enable CONFIG_CRYPTO_SHA256
+        ./scripts/config --enable CONFIG_CRYPTO_SHA512
+        ./scripts/config --enable CONFIG_CRYPTO_CRC32C
+        ./scripts/config --enable CONFIG_CRC32C_INTEL
+        ./scripts/config --enable CONFIG_CRYPTO_USER_API
+        ./scripts/config --enable CONFIG_CRYPTO_USER_API_HASH
+        ./scripts/config --enable CONFIG_CRYPTO_USER_API_SKCIPHER
+        ./scripts/config --enable CONFIG_CRYPTO_DRBG
+        ./scripts/config --enable CONFIG_CRYPTO_JITTERENTROPY
+
+        # Device mapper
+        ./scripts/config --enable CONFIG_MD
+        ./scripts/config --enable CONFIG_BLK_DEV_DM
+
+        # USB and HID
+        ./scripts/config --enable CONFIG_USB_SUPPORT
+        ./scripts/config --enable CONFIG_USB_XHCI_HCD
+        ./scripts/config --enable CONFIG_USB_EHCI_HCD
+        ./scripts/config --enable CONFIG_USB_OHCI_HCD
+        ./scripts/config --enable CONFIG_USB_UHCI_HCD
+        ./scripts/config --enable CONFIG_USB_HID
+        ./scripts/config --enable CONFIG_USB_UAS
+        ./scripts/config --enable CONFIG_HID
+        ./scripts/config --enable CONFIG_HID_GENERIC
+        ./scripts/config --enable CONFIG_INPUT
+        ./scripts/config --enable CONFIG_INPUT_EVDEV
+
+        # Console and VT
+        ./scripts/config --enable CONFIG_VT
+        ./scripts/config --enable CONFIG_UNIX98_PTYS
+        ./scripts/config --enable CONFIG_TTY
+
+        # fat and vfat
+        ./scripts/config --enable CONFIG_FAT_FS
+        ./scripts/config --enable CONFIG_VFAT_FS
+        ./scripts/config --enable CONFIG_NLS_CODEPAGE_437
+        ./scripts/config --enable CONFIG_NLS_ISO8859_1
+
+        # SATA / SCSI
+        ./scripts/config --enable CONFIG_ATA
+        ./scripts/config --enable CONFIG_SATA_AHCI
+        ./scripts/config --enable CONFIG_SCSI
+        ./scripts/config --enable CONFIG_BLK_DEV_SD
+        # EFI
+        ./scripts/config --enable CONFIG_EFI
+        ./scripts/config --enable CONFIG_EFIVAR_FS
+        ./scripts/config --enable CONFIG_EFI_PARTITION
+        ./scripts/config --enable CONFIG_EFI_RUNTIME_MAP
+        ./scripts/config --enable CONFIG_EFI_STUB
+        ./scripts/config --enablr CONFIG_PROC_FS
+
+        # AMD platform (x670e / Ryzen 9950x)
+        ./scripts/config --enable CONFIG_AMD_NB
+        ./scripts/config --enable CONFIG_X86_AMD_PLATFORM_DEVICE
+        ./scripts/config --enable CONFIG_AMD_PMC
+
+        # NVME
+        # ./scripts/config --module CONFIG_NVME_CORE
+        # ./scripts/config --enable CONFIG_BLK_DEV_NVME
+        # ./scripts/config --module CONFIG_NVME_FABRICS
+        # ./scripts/config --module CONFIG_NVME_FC
+        # ./scripts/config --module CONFIG_NVME_TCP
+        # ./scripts/config --module CONFIG_NVME_KEYRING
+        # ./scripts/config --module CONFIG_NVME_AUTH
+        # ./scripts/config --module CONFIG_NVME_TARGET
+        # ./scripts/config --module CONFIG_NVME_TARGET_LOOP
+        # ./scripts/config --module CONFIG_NVME_TARGET_FC
+        # ./scripts/config --module CONFIG_NVME_TARGET_TCP
+        # ./scripts/config --module CONFIG_NVME_TARGET_AUTH
+
+        # extra
+        ./scripts/config --enable CONFIG_DM_INIT
+        ./scripts/config --enable CONFIG_DAX
+        ./scripts/config --enable CONFIG_RD_ZSTD
+
+        make olddefconfig || die "make olddefconfig failed after scripts/config"
+    fi
+    
+    echo "Compiling kernel with ${NPROC} jobs"
+    make -j"${NPROC}" || die "Kernel compilation failed"
+    
+    echo "Installing modules"
+    make modules_install || die "make modules_install failed"
+    
+    echo "Installing kernel (triggers installkernel hooks -> ugrd -> uefi-mkconfig)"
+    make install || die "make install failed"
 } 
 
 function generate_initramfs() {
@@ -143,9 +259,7 @@ modules = [
 
 subvol_selector = true
 pio_compression = "zstd"
-# kmod_autodetect_lspci = true
-
-kmod_init = ["dm_crypt", "nvme", "btrfs", "xhci_pci", "usb_storage", "vfat"]
+kmod_autodetect_lspci = true
 
 # Changed from /boot to /efi to match your fstab and disk layout
 auto_mounts = ['/efi']
@@ -173,6 +287,11 @@ EOF
     # just add it to make.conf and then uncomment it
     # test sys-kernel/gentoo-kernel -initramfs
 
-    ugrd --kver 6.18.29-gentoo-dist-hardened /efi/initramfs-6.18.39-hardened.img
+    try ugrd --kver 6.18.29-gentoo-dist-hardened /efi/initramfs-6.18.39-hardened.img
 
 }
+
+# efibootmgr --create --disk /dev/nvme0n1 --part 1 \
+#   --label "Gentoo" \
+#   --loader "\vmlinuz-6.x.y-gentoo.efi" \
+#   --unicode "initrd=\initramfs-6.x.y-gentoo.img root=UUID=<your-btrfs-uuid> rd.luks.uuid=<your-luks-uuid> ro"
