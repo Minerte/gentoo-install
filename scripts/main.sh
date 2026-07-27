@@ -144,7 +144,7 @@ function install_kernel() {
         ./scripts/config --enable CONFIG_BTRFS_FS
         ./scripts/config --enable CONFIG_BTRFS_FS_POSIX_ACL
         ./scripts/config --enable CONFIG_BTRFS_FS_CHECK_INTEGRITY
-        ./scripts/config --module CONFIG_BTRFS_FS_COMPRESS_ZSTD
+        ./scripts/config --enable CONFIG_BTRFS_FS_COMPRESS_ZSTD
 
         # Crypt algorithms 
         ./scripts/config --enable CONFIG_DM_CRYPT
@@ -249,6 +249,8 @@ function install_kernel() {
         ./scripts/config --enable CONFIG_DM_INIT
         ./scripts/config --enable CONFIG_DAX
         ./scripts/config --enable CONFIG_RD_ZSTD
+        ./scripts/config --enable CONFIG_ZSTD_COMPRESS
+        ./scripts/config --enable CONFIG_ZSTD_DECOMPRESS
 
         make olddefconfig || die "make olddefconfig failed after scripts/config"
     fi
@@ -303,6 +305,7 @@ modules = [
 ]
 
 subvol_selector = true
+pio_compression = "zstd"
 kmod_autodetect_lspci = true
 
 # Changed from /boot to /efi to match your fstab and disk layout
