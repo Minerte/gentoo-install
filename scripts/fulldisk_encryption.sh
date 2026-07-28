@@ -210,18 +210,17 @@ function disk_format() {
 
     export GPG_TTY=$(tty)
 
-    echo "Change DIR to ESP"
-    mkdir -p "$BTRFS_TEMP_MOUNT" || die "Could not create dir $BTRFS_TEMP_MOUNT"
-    mkdir -p "$ROOT_MOUNTPOINT" || die "Could not create dir $ROOT_MOUNTPOINT"
-    MOUNT_EFI="$ROOT_MOUNTPOINT/efi"
-    mkdir -p "$MOUNT_EFI" || die "Could not create dir $MOUNT_EFI"
-    mount "$EFI_PART" "$MOUNT_EFI" || die "Failed to mount $EFI_PART to $MOUNT_EFI"
+    # --- Temporary EFI mount for GPG key creation ---
+    local EFI_TEMP_MOUNT="/tmp/efi-temp"
+    echo "Creating temporary EFI mount at $EFI_TEMP_MOUNT"
+    mkdir -p "$EFI_TEMP_MOUNT" || die "Could not create dir $EFI_TEMP_MOUNT"
+    mount "$EFI_PART" "$EFI_TEMP_MOUNT" || die "Failed to mount $EFI_PART to $EFI_TEMP_MOUNT"
 
-    cd "$MOUNT_EFI" || die "Failed to change dir to $MOUNT_EFI"
+    cd "$EFI_TEMP_MOUNT" || die "Failed to change dir to $EFI_TEMP_MOUNT"
 
     echo "Creating encryption for swap"
     dd bs=8388608 count=1 if=/dev/urandom | gpg --symmetric --cipher-algo AES256 --output cryptswap_key.luks.gpg \
-		|| { echo "Could not generate GPG encrypted swap keyfile"; exit 1;}
+        || { echo "Could not generate GPG encrypted swap keyfile"; exit 1;}
 
     if [[ -f "cryptswap_key.luks.gpg" ]]; then
         einfo "cryptswap_key.luks.gpg created (size: $(stat -c %s cryptswap_key.luks.gpg) bytes)"
@@ -230,36 +229,34 @@ function disk_format() {
     fi
 
     # Use the GPG keyfile to format LUKS partition
-	# Pipe decrypted key directly to cryptsetup (never stored unencrypted on disk)
-	gpg --batch --yes --decrypt cryptswap_key.luks.gpg | cryptsetup luksFormat \
-			--type luks2 \
-			--key-file=- \
-			--cipher aes-xts-plain64 \
-			--key-size 512 \
-			--hash sha512 \
-			--pbkdf argon2id \
-			--iter-time 4000 \
-			--batch-mode \
-			"$SWAP_PART" \
-		        || { echo "Could not create luks on $SWAP_PART"; exit 1;}
+    gpg --batch --yes --decrypt cryptswap_key.luks.gpg | cryptsetup luksFormat \
+            --type luks2 \
+            --key-file=- \
+            --cipher aes-xts-plain64 \
+            --key-size 512 \
+            --hash sha512 \
+            --pbkdf argon2id \
+            --iter-time 4000 \
+            --batch-mode \
+            "$SWAP_PART" \
+                || { echo "Could not create luks on $SWAP_PART"; exit 1;}
 
-	sleep 5
+    sleep 5
 
-	gpg --batch --yes --decrypt "cryptswap_key.luks.gpg" | cryptsetup open --type luks2 \
-			"$SWAP_PART" "$LUKS_SWAP_NAME" \
-			--key-file=- \
-		        ||  { echo "Could not open luks encrypted device"; exit 1;}
+    gpg --batch --yes --decrypt "cryptswap_key.luks.gpg" | cryptsetup open --type luks2 \
+            "$SWAP_PART" "$LUKS_SWAP_NAME" \
+            --key-file=- \
+                ||  { echo "Could not open luks encrypted device"; exit 1;}
 
     echo "SWAP partition encrypted and open at /dev/mapper/$LUKS_SWAP_NAME"
 
-    echo "Formating $SWAP_PART"
-    echo "swapon"
+    echo "Formating swap"
     mkswap "/dev/mapper/$LUKS_SWAP_NAME"
     swapon "/dev/mapper/$LUKS_SWAP_NAME"
 
     echo "Creating encryption for root"
-	dd bs=8388608 count=1 if=/dev/urandom | gpg --symmetric --cipher-algo AES256 --output cryptroot_key.luks.gpg \
-		|| { echo "Could not generate GPG encrypted root keyfile"; exit 1;}
+    dd bs=8388608 count=1 if=/dev/urandom | gpg --symmetric --cipher-algo AES256 --output cryptroot_key.luks.gpg \
+        || { echo "Could not generate GPG encrypted root keyfile"; exit 1;}
 
     if [[ -f "cryptroot_key.luks.gpg" ]]; then
         einfo "cryptroot_key.luks.gpg created (size: $(stat -c %s cryptroot_key.luks.gpg) bytes)"
@@ -268,50 +265,69 @@ function disk_format() {
     fi
 
     # Use the GPG keyfile to format LUKS partition
-	# Pipe decrypted key directly to cryptsetup (never stored unencrypted on disk)
-	gpg --batch --yes --decrypt cryptroot_key.luks.gpg | cryptsetup luksFormat \
-			--type luks2 \
-			--key-file=- \
-			--cipher aes-xts-plain64 \
-			--key-size 512 \
-			--hash sha512 \
-			--pbkdf argon2id \
-			--iter-time 4000 \
-			--batch-mode \
-			"$ROOT_PART" \
-		        || { echo "Could not create luks on $ROOT_PART"; exit 1;}
+    gpg --batch --yes --decrypt cryptroot_key.luks.gpg | cryptsetup luksFormat \
+            --type luks2 \
+            --key-file=- \
+            --cipher aes-xts-plain64 \
+            --key-size 512 \
+            --hash sha512 \
+            --pbkdf argon2id \
+            --iter-time 4000 \
+            --batch-mode \
+            "$ROOT_PART" \
+                || { echo "Could not create luks on $ROOT_PART"; exit 1;}
 
-	sleep 5
+    sleep 5
 
-	gpg --batch --yes --decrypt cryptroot_key.luks.gpg \
-		| cryptsetup open --type luks2 \
-			"$ROOT_PART" "$LUKS_ROOT_NAME" \
-			--key-file=- \
-		        || { echo "Could not open luks encrypted device"; exit 1;}
+    gpg --batch --yes --decrypt cryptroot_key.luks.gpg \
+        | cryptsetup open --type luks2 \
+            "$ROOT_PART" "$LUKS_ROOT_NAME" \
+            --key-file=- \
+                || { echo "Could not open luks encrypted device"; exit 1;}
 
     echo "Root partition encrypted and open at /dev/mapper/$LUKS_ROOT_NAME"
 
     echo "Change dir back to /"
     cd || { echo "Failed to change dir to /"; exit 1;}
 
-    echo "Formating  $ROOT_PART"
+    # --- Format root as BTRFS ---
+    echo "Formating $ROOT_PART"
     mkfs.btrfs -L BTROOT "/dev/mapper/$LUKS_ROOT_NAME" || { echo "Failed to create btrfs"; exit 1; }
-    echo "mounting filesystem to /mnt/root"
+
+    # --- Temporarily mount top-level ONLY to create subvolumes ---
+    echo "Temporarily mounting filesystem to $BTRFS_TEMP_MOUNT for subvolume creation"
+    mkdir -p "$BTRFS_TEMP_MOUNT" || die "Could not create dir $BTRFS_TEMP_MOUNT"
     mount -t btrfs -o defaults,noatime,compress=zstd "/dev/mapper/$LUKS_ROOT_NAME" "$BTRFS_TEMP_MOUNT"
-    # Create subvolumes
+
     echo "creation of subvolumes"
     for sub in activeroot home etc var log tmp; do
         btrfs subvolume create "$BTRFS_TEMP_MOUNT/$sub" || { echo "Failed to create subvolume $sub"; exit 1; }
     done
 
-    # Creating and mounting to root
-    echo "Mounting everything to /mnt/gentoo"
-    mount -t btrfs -o defaults,noatime,compress=zstd,subvol=activeroot "/dev/mapper/$LUKS_ROOT_NAME" /mnt/gentoo/
-    mkdir /mnt/gentoo/{home,etc,var,log,tmp,efi}
+    # Unmount top-level immediately after subvolume creation
+    echo "Unmounting $BTRFS_TEMP_MOUNT"
+    umount "$BTRFS_TEMP_MOUNT" || { echo "Failed to unmount $BTRFS_TEMP_MOUNT"; exit 1; }
+
+    # --- Mount activeroot DIRECTLY to /mnt/gentoo (the chroot target) ---
+    echo "Mounting activeroot subvolume to $ROOT_MOUNTPOINT"
+    mkdir -p "$ROOT_MOUNTPOINT" || die "Could not create dir $ROOT_MOUNTPOINT"
+    mount -t btrfs -o defaults,noatime,compress=zstd,subvol=activeroot "/dev/mapper/$LUKS_ROOT_NAME" "$ROOT_MOUNTPOINT"
+
+    # Create mount points INSIDE activeroot for other subvolumes and EFI
+    echo "Creating mount points in $ROOT_MOUNTPOINT"
+    mkdir -p "$ROOT_MOUNTPOINT"/{home,etc,var,log,tmp,efi} || die "Could not create directories in $ROOT_MOUNTPOINT"
+
+    # Mount other subvolumes
+    echo "Mounting subvolumes"
     for sub in home etc var log tmp; do
-        mount -t btrfs -o defaults,noatime,compress=zstd,subvol=$sub "/dev/mapper/$LUKS_ROOT_NAME" /mnt/gentoo/$sub
+        mount -t btrfs -o defaults,noatime,compress=zstd,subvol=$sub "/dev/mapper/$LUKS_ROOT_NAME" "$ROOT_MOUNTPOINT/$sub"
     done
 
+    # Mount EFI to the proper location inside the chroot tree
+    echo "Mounting EFI partition to $ROOT_MOUNTPOINT/efi"
+    mount "$EFI_PART" "$ROOT_MOUNTPOINT/efi" || die "Failed to mount $EFI_PART to $ROOT_MOUNTPOINT/efi"
+
+    echo "Disk format completed successfully"
 }
 
 function stage3() {
@@ -387,8 +403,7 @@ function stage3() {
     ls -la /mnt/gentoo/sbin/init
     # --- End block ---
 
-    echo "Stage 3 tarball extraction completed" 
-
+    echo "Stage 3 tarball extraction completed"
 }
 
 function config_system_outside_chroot() {
@@ -431,7 +446,6 @@ EOF
     echo "$TIMEZONE" > /mnt/gentoo/etc/timezone
 
     echo "Succesfully configure basic system"
-
 }
 
 function config_portage() {
