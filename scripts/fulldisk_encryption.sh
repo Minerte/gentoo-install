@@ -385,7 +385,6 @@ function stage3() {
         die "Stage 3 extraction incomplete: /mnt/gentoo/sbin/init is missing or not executable"
     fi
     ls -la /mnt/gentoo/sbin/init
-    file /mnt/gentoo/sbin/init
     # --- End block ---
 
     echo "Stage 3 tarball extraction completed" 

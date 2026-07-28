@@ -76,7 +76,7 @@ EOF
     echo "Configure timezone"
     try emerge -v --config sys-libs/timezone-data
 
-    einfo "Adding cpuflags" 
+    einfo "Adding cpuflags"
     try emerge --oneshot app-portage/cpuid2cpuflags
     sleep 3
 
@@ -88,7 +88,7 @@ EOF
             || die "could not uncomment and set CPU_FLAGS_X86"
         echo "Uncommented and set CPU_FLAGS_X86 in make.conf"
 
-    else 
+    else
         grep -q "^CPU_FLAGS_X86=" /etc/portage/make.conf
         sed -i "s/^CPU_FLAGS_X86=.*/CPU_FLAGS_X86=\"${CPU_FLAGS}\"/" /etc/portage/make.conf \
             || die "could not update CPU_FLAGS_X86"
@@ -110,12 +110,12 @@ EOF
 
     install_kernel
 
-    enable_service
-
     echo "Emerging tools"
     try emerge --verbose sys-block/io-scheduler-udev-rules \
     sys-apps/mlocate dev-vcs/git net-misc/networkmanager \
     app-shells/bash-completion net-misc/chrony
+
+    enable_service
 
     echo "Set root password"
     passwd
@@ -129,7 +129,6 @@ function install_kernel() {
 
     # Install efibootmgr first so uefi-mkconfig can use it
     try emerge sys-boot/efibootmgr
-
     try emerge sys-kernel/installkernel sys-kernel/linux-firmware
 
     try emerge --verbose sys-kernel/gentoo-sources sys-apps/pciutils \
@@ -286,10 +285,6 @@ function install_kernel() {
 
     echo "Installing kernel (triggers installkernel hooks -> ugrd -> uefi-mkconfig)"
     make install || die "make install failed"
-    sleep 3
-
-    ls -la /efi/initramfs-*.img
-    # Should show a recent timestamp
     sleep 20
 
     setup_efistub_boot
@@ -329,6 +324,7 @@ modules = [
     "ugrd.fs.btrfs"
 ]
 
+root_subvol=activeroot
 kmod_autodetect_lspci = true
 
 # Changed from /boot to /efi to match your fstab and disk layout
