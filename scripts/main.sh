@@ -80,6 +80,8 @@ EOF
     try emerge --oneshot app-portage/cpuid2cpuflags
     sleep 3
 
+    einfo "Adding cpuflag to make.conf"
+    CPU_FLAGS=$(cpuid2cpuflags | cut -d' ' -f2-)
     # 1. If the commented line exists, uncomment it and set the correct flags
     if grep -q "^#CPU_FLAGS_X86=" /etc/portage/make.conf; then
         sed -i "s/^#CPU_FLAGS_X86=.*/CPU_FLAGS_X86=\"${CPU_FLAGS}\"/" /etc/portage/make.conf \
