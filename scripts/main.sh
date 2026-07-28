@@ -73,15 +73,34 @@ EOF
     echo "Syncing to DB"
     try emerge --sync --quiet
 
-    try emerge --oneshot sys-apps/openrc
+    echo "Configure timezone"
+    try emerge -v --config sys-libs/timezone-data
 
+    einfo "Adding cpuflags" 
+    try emerge --oneshot app-portage/cpuid2cpuflags
+    sleep 3
+
+    # 1. If the commented line exists, uncomment it and set the correct flags
+    if grep -q "^#CPU_FLAGS_X86=" /etc/portage/make.conf; then
+        sed -i "s/^#CPU_FLAGS_X86=.*/CPU_FLAGS_X86=\"${CPU_FLAGS}\"/" /etc/portage/make.conf \
+            || die "could not uncomment and set CPU_FLAGS_X86"
+        echo "Uncommented and set CPU_FLAGS_X86 in make.conf"
+
+    else 
+        grep -q "^CPU_FLAGS_X86=" /etc/portage/make.conf
+        sed -i "s/^CPU_FLAGS_X86=.*/CPU_FLAGS_X86=\"${CPU_FLAGS}\"/" /etc/portage/make.conf \
+            || die "could not update CPU_FLAGS_X86"
+        echo "Updated CPU_FLAGS_X86 in make.conf"
+    fi
+
+    einfo "Re-emerge ALL system apps"
+    try emerge --emptytree -a -1 @installed
+
+    try emerge --oneshot sys-apps/openrc
     echo "merging filesystem"
     try emerge --verbose sys-fs/cryptsetup sys-fs/btrfs-progs \
-        sys-fs/e2fsprogs sys-fs/dosfstools
-
-    try emerge --verbose app-arch/zstd app-crypt/gnupg
-
-    try emerge --verbose net-misc/networkmanager app-shells/bash-completion net-misc/chrony
+        sys-fs/e2fsprogs sys-fs/dosfstools app-crypt/gnupg \
+        app-arch/zstd
 
     env_update
 
@@ -93,16 +112,13 @@ EOF
 
     echo "Emerging tools"
     try emerge --verbose sys-block/io-scheduler-udev-rules \
-    sys-apps/mlocate dev-vcs/git
-
-    echo "Configure timezone"
-    try emerge -v --config sys-libs/timezone-data
+    sys-apps/mlocate dev-vcs/git net-misc/networkmanager \
+    app-shells/bash-completion net-misc/chrony
 
     echo "Set root password"
     passwd
 
-    die "Test Completed"
-
+    einfo "script completed"
 }
 
 function install_kernel() {
@@ -115,11 +131,7 @@ function install_kernel() {
     try emerge sys-kernel/installkernel sys-kernel/linux-firmware
 
     try emerge --verbose sys-kernel/gentoo-sources sys-apps/pciutils \
-        sys-kernel/linux-firmware sys-firmware/sof-firmware \
-        app-portage/gentoolkit
-
-    # Changes so we use gentoo-sources
-    # Need to reconfigure kernel and generateintramfs after kernel build
+        sys-firmware/sof-firmware app-portage/gentoolkit
 
     echo "Selecting kernel to set 1"
     try eselect kernel set 1 \
@@ -128,10 +140,17 @@ function install_kernel() {
     cd /usr/src/linux \
         || die "could not change to /usr/linux"
 
+    # Seed config from the live environment if available
+    if [[ -f /proc/config.gz ]]; then
+        zcat /proc/config.gz > .config
+        make olddefconfig || die "make olddefconfig failed"
+        echo "olddefconfig dubug message only"
+        sleep 5
+    else
+        make defconfig || die "make defconfig failed"
         echo "defconfig dubug message only"
         sleep 5
-        make defconfig || die "make defconfig failed"
-        sleep 5
+    fi
 
     # Enable essentials for LUKS + Btrfs + EFI stub booting
     if [[ -f scripts/config ]]; then
@@ -208,18 +227,18 @@ function install_kernel() {
         sleep 10
 
         # NVME
-        # ./scripts/config --module CONFIG_NVME_CORE
-        # ./scripts/config --enable CONFIG_BLK_DEV_NVME
-        # ./scripts/config --module CONFIG_NVME_FABRICS
-        # ./scripts/config --module CONFIG_NVME_FC
-        # ./scripts/config --module CONFIG_NVME_TCP
-        # ./scripts/config --module CONFIG_NVME_KEYRING
-        # ./scripts/config --module CONFIG_NVME_AUTH
-        # ./scripts/config --module CONFIG_NVME_TARGET
-        # ./scripts/config --module CONFIG_NVME_TARGET_LOOP
-        # ./scripts/config --module CONFIG_NVME_TARGET_FC
-        # ./scripts/config --module CONFIG_NVME_TARGET_TCP
-        # ./scripts/config --module CONFIG_NVME_TARGET_AUTH
+        ./scripts/config --module CONFIG_NVME_CORE
+        ./scripts/config --enable CONFIG_BLK_DEV_NVME
+        ./scripts/config --module CONFIG_NVME_FABRICS
+        ./scripts/config --module CONFIG_NVME_FC
+        ./scripts/config --module CONFIG_NVME_TCP
+        ./scripts/config --module CONFIG_NVME_KEYRING
+        ./scripts/config --module CONFIG_NVME_AUTH
+        ./scripts/config --module CONFIG_NVME_TARGET
+        ./scripts/config --module CONFIG_NVME_TARGET_LOOP
+        ./scripts/config --module CONFIG_NVME_TARGET_FC
+        ./scripts/config --module CONFIG_NVME_TARGET_TCP
+        ./scripts/config --module CONFIG_NVME_TARGET_AUTH
 
         # Kernel Command
         # Kernel Command - auto-detect UUIDs from chroot environment
@@ -244,14 +263,13 @@ function install_kernel() {
         ./scripts/config --enable CONFIG_CMDLINE_EXTEND
         # OR
         # ./scripts/config --enable CONFIG_CMDLINE_FORCE    # Kernel cmdline overrides everything
-        sleep 20
+        sleep 10
         # extra
         ./scripts/config --enable CONFIG_DM_INIT
         ./scripts/config --enable CONFIG_DAX
         ./scripts/config --enable CONFIG_RD_ZSTD
 
         make olddefconfig || die "make olddefconfig failed after scripts/config"
-
     fi
 
     echo "Compiling kernel with ${NPROC} jobs"
@@ -281,7 +299,7 @@ function install_kernel() {
 function generate_initramfs() {
     echo "Compiling initramfs"
     try emerge --verbose sys-kernel/ugrd
-    sleep 5
+    sleep 20
 
     echo  "Generating initramfs"
     sleep 5
@@ -330,16 +348,6 @@ key_file = "/efi/cryptswap_key.luks.gpg"
 EOF
 
     einfo "ugrd configuration deployed to $config_file"
-
-    einfo "updating make.conf for kernel to use ugrd"
-
-    # THIS failed becuase of spacing issue in make.conf
-    # just add it to make.conf and then uncomment it
-    # test sys-kernel/gentoo-kernel -initramfs
-
-    # Dont need anymore for install-kernel generates it
-    # try ugrd --kver 6.18.39-gentoo-dist-hardened /efi/initramfs-6.18.39-hardened.img
-
 }
 
 function enable_service() {
@@ -348,9 +356,6 @@ function enable_service() {
     try rc-update add NetworkManager default
     try rc-update add chronyd default
 }
-
-# just run efibootmgr and everything will work, dont change any in kernel for now
-# install openrc and other programs before the kernel compils
 
 function setup_efistub_boot() {
     einfo "Setting up EFISTUB boot entry with efibootmgr"
