@@ -61,9 +61,16 @@ function main_install_gentoo_in_chroot() {
     fi
 
     # FIX: Kernel command line for uefi-mkconfig / ugrd / LUKS root
+    local root_uuid="${CHROOT_ROOT_UUID:-}"
+    local root_luks_uuid="${CHROOT_ROOT_UNDERLYING_UUID:-}"
+    local swap_uuid="${CHROOT_SWAP_UUID:-}"
+
+    [[ -n "$root_uuid" ]] || die "CHROOT_ROOT_UUID is empty - cannot set root= in kernel cmdline"
+    [[ -n "$root_luks_uuid" ]] || die "CHROOT_ROOT_UNDERLYING_UUID is empty - cannot set rd.luks.uuid="
+
     mkdir -p /etc/kernel
     cat > /etc/kernel/cmdline << 'EOF'
-root=/dev/mapper/cryptroot rootfstype=btrfs rootflags=subvol=activeroot
+root=UUID=${root_uuid} rd.luks.uuid=${root_luks_uuid} rootflags=subvol=activeroot ro
 EOF
 
     # FIX: Explicit USE flags so installkernel knows we want efistub + ugrd
