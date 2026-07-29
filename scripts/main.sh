@@ -324,7 +324,6 @@ modules = [
     "ugrd.fs.btrfs"
 ]
 
-root_subvol = "activeroot"
 kmod_autodetect_lspci = true
 
 # Changed from /boot to /efi to match your fstab and disk layout
