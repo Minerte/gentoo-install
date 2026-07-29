@@ -243,28 +243,28 @@ function install_kernel() {
 
         # Kernel Command
         # Kernel Command - auto-detect UUIDs from chroot environment
-        local root_uuid="${CHROOT_ROOT_UUID:-}"
-        local root_luks_uuid="${CHROOT_ROOT_UNDERLYING_UUID:-}"
-        local swap_uuid="${CHROOT_SWAP_UUID:-}"
+        # local root_uuid="${CHROOT_ROOT_UUID:-}"
+        # local root_luks_uuid="${CHROOT_ROOT_UNDERLYING_UUID:-}"
+        # local swap_uuid="${CHROOT_SWAP_UUID:-}"
 
-        [[ -n "$root_uuid" ]] || die "CHROOT_ROOT_UUID is empty - cannot set root= in kernel cmdline"
-        [[ -n "$root_luks_uuid" ]] || die "CHROOT_ROOT_UNDERLYING_UUID is empty - cannot set rd.luks.uuid="
+        # [[ -n "$root_uuid" ]] || die "CHROOT_ROOT_UUID is empty - cannot set root= in kernel cmdline"
+        # [[ -n "$root_luks_uuid" ]] || die "CHROOT_ROOT_UNDERLYING_UUID is empty - cannot set rd.luks.uuid="
 
-        local kernel_cmdline="root=UUID=${root_uuid} rd.luks.uuid=${root_luks_uuid} ro"
+        # local kernel_cmdline="root=UUID=${root_uuid} rd.luks.uuid=${root_luks_uuid} rootflags=subvol=activeroot ro"
 
-        # Add resume for hibernation if swap UUID was detected
-        if [[ -n "$swap_uuid" ]]; then
-            kernel_cmdline+=" resume=UUID=${swap_uuid}"
-        fi
+        # # Add resume for hibernation if swap UUID was detected
+        # if [[ -n "$swap_uuid" ]]; then
+        #     kernel_cmdline+=" resume=UUID=${swap_uuid}"
+        # fi
 
-        einfo "Setting kernel cmdline: $kernel_cmdline"
+        # einfo "Setting kernel cmdline: $kernel_cmdline"
 
-        ./scripts/config --enable CONFIG_CMDLINE_BOOL
-        ./scripts/config --set-str CONFIG_CMDLINE "$kernel_cmdline"
-        ./scripts/config --enable CONFIG_CMDLINE_EXTEND
-        # OR
-        # ./scripts/config --enable CONFIG_CMDLINE_FORCE    # Kernel cmdline overrides everything
-        sleep 10
+        # ./scripts/config --enable CONFIG_CMDLINE_BOOL
+        # ./scripts/config --set-str CONFIG_CMDLINE "$kernel_cmdline"
+        # ./scripts/config --enable CONFIG_CMDLINE_EXTEND
+        # # OR
+        # # ./scripts/config --enable CONFIG_CMDLINE_FORCE    # Kernel cmdline overrides everything
+        # sleep 10
         # extra
         ./scripts/config --enable CONFIG_DM_INIT
         ./scripts/config --enable CONFIG_DAX
@@ -333,15 +333,15 @@ auto_mounts = ['/efi']
 path = '/efi'
 uuid = "$efi_uuid"
 
-[cryptsetup.cryptroot]
-uuid = "$root_uuid"
-key_type = "gpg"
-key_file = "/efi/cryptroot_key.luks.gpg"
-
 [cryptsetup.cryptswap]
 uuid = "$swap_uuid"
 key_type = "gpg"
 key_file = "/efi/cryptswap_key.luks.gpg"
+
+[cryptsetup.cryptroot]
+uuid = "$root_uuid"
+key_type = "gpg"
+key_file = "/efi/cryptroot_key.luks.gpg"
 EOF
 
     einfo "ugrd configuration deployed to $config_file"
@@ -404,9 +404,8 @@ function setup_efistub_boot() {
     [[ -n "$root_uuid" ]] || die "CHROOT_ROOT_UUID is empty"
     [[ -n "$root_luks_uuid" ]] || die "CHROOT_ROOT_UNDERLYING_UUID is empty"
 
-    local cmdline="root=UUID=${root_uuid} rd.luks.uuid=${root_luks_uuid} ro"
+    local cmdline="root=UUID=${root_uuid} rd.luks.uuid=${root_luks_uuid} rootflags=subvol=activeroot ro"
     [[ -n "$swap_uuid" ]] && cmdline+=" resume=UUID=${swap_uuid}"
-    cmdline+=" rootflags=subvol=activeroot"
 
     einfo "Kernel cmdline: $cmdline"
 
