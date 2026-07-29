@@ -313,7 +313,7 @@ function disk_format() {
     mkdir -p "$ROOT_MOUNTPOINT" || die "Could not create dir $ROOT_MOUNTPOINT"
     mount -t btrfs -o defaults,noatime,compress=zstd,subvol=activeroot "/dev/mapper/$LUKS_ROOT_NAME" "$ROOT_MOUNTPOINT"
 
-    # Create mount points INSIDE activeroot for other subvolumes and EFI
+    # --- Create mount points INSIDE activeroot for other subvolumes and EFI ---
     echo "Creating mount points in $ROOT_MOUNTPOINT"
     mkdir -p "$ROOT_MOUNTPOINT"/{home,etc,var,log,tmp,efi} || die "Could not create directories in $ROOT_MOUNTPOINT"
 
@@ -323,9 +323,9 @@ function disk_format() {
         mount -t btrfs -o defaults,noatime,compress=zstd,subvol=$sub "/dev/mapper/$LUKS_ROOT_NAME" "$ROOT_MOUNTPOINT/$sub"
     done
 
-    # Mount EFI to the proper location inside the chroot tree
-    echo "Mounting EFI partition to $ROOT_MOUNTPOINT/efi"
-    mount "$EFI_PART" "$ROOT_MOUNTPOINT/efi" || die "Failed to mount $EFI_PART to $ROOT_MOUNTPOINT/efi"
+    # DO NOT mount EFI here — let the chroot script handle it
+    # This keeps /mnt/gentoo/efi as an empty directory inside activeroot
+    echo "EFI directory created at $ROOT_MOUNTPOINT/efi (will be mounted inside chroot)"
 
     echo "Disk format completed successfully"
 }

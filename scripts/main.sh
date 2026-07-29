@@ -8,9 +8,9 @@ function main_install() {
     export_disk_uuids
     sleep 5
 
-    # After disk_format and stage3, ensure /mnt/gentoo/efi is mounted
-    if ! mountpoint -q "$ROOT_MOUNTPOINT/efi"; then
-        die "EFI partition is not mounted at $ROOT_MOUNTPOINT/efi!"
+    # After disk_format and stage3, ensure /mnt/gentoo/efi exists as a directory
+    if [[ ! -d "$ROOT_MOUNTPOINT/efi" ]]; then
+        die "EFI directory does not exist at $ROOT_MOUNTPOINT/efi!"
     fi
 
     gentoo_chroot "$ROOT_MOUNTPOINT" "$GENTOO_INSTALL_REPO_BIND/install" __install_gentoo_in_chroot
