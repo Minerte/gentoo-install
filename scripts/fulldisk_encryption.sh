@@ -218,9 +218,9 @@ function disk_format() {
 
     cd "$EFI_TEMP_MOUNT" || die "Failed to change dir to $EFI_TEMP_MOUNT"
 
-    echo "Creating encryption for swap"
+    einfo "Creating encryption for swap"
     dd bs=8388608 count=1 if=/dev/urandom | gpg --symmetric --cipher-algo AES256 --output cryptswap_key.luks.gpg \
-        || { echo "Could not generate GPG encrypted swap keyfile"; exit 1;}
+        || die "Could not generate GPG encrypted swap keyfile"
 
     if [[ -f "cryptswap_key.luks.gpg" ]]; then
         einfo "cryptswap_key.luks.gpg created (size: $(stat -c %s cryptswap_key.luks.gpg) bytes)"
@@ -239,14 +239,14 @@ function disk_format() {
             --iter-time 4000 \
             --batch-mode \
             "$SWAP_PART" \
-                || { echo "Could not create luks on $SWAP_PART"; exit 1;}
+                || die "Could not create luks on $SWAP_PART"
 
     sleep 5
 
     gpg --batch --yes --decrypt "cryptswap_key.luks.gpg" | cryptsetup open --type luks2 \
             "$SWAP_PART" "$LUKS_SWAP_NAME" \
             --key-file=- \
-                ||  { echo "Could not open luks encrypted device"; exit 1;}
+                ||  die "Could not open luks encrypted device"
 
     echo "SWAP partition encrypted and open at /dev/mapper/$LUKS_SWAP_NAME"
 
@@ -254,9 +254,9 @@ function disk_format() {
     mkswap "/dev/mapper/$LUKS_SWAP_NAME"
     swapon "/dev/mapper/$LUKS_SWAP_NAME"
 
-    echo "Creating encryption for root"
+    einfo "Creating encryption for root"
     dd bs=8388608 count=1 if=/dev/urandom | gpg --symmetric --cipher-algo AES256 --output cryptroot_key.luks.gpg \
-        || { echo "Could not generate GPG encrypted root keyfile"; exit 1;}
+        || die "Could not generate GPG encrypted root keyfile"
 
     if [[ -f "cryptroot_key.luks.gpg" ]]; then
         einfo "cryptroot_key.luks.gpg created (size: $(stat -c %s cryptroot_key.luks.gpg) bytes)"
@@ -275,7 +275,7 @@ function disk_format() {
             --iter-time 4000 \
             --batch-mode \
             "$ROOT_PART" \
-                || { echo "Could not create luks on $ROOT_PART"; exit 1;}
+                || die "Could not create luks on $ROOT_PART"
 
     sleep 5
 
@@ -283,16 +283,16 @@ function disk_format() {
         | cryptsetup open --type luks2 \
             "$ROOT_PART" "$LUKS_ROOT_NAME" \
             --key-file=- \
-                || { echo "Could not open luks encrypted device"; exit 1;}
+                || die "Could not open luks encrypted device"
 
     echo "Root partition encrypted and open at /dev/mapper/$LUKS_ROOT_NAME"
 
     echo "Change dir back to /"
-    cd || { echo "Failed to change dir to /"; exit 1;}
+    cd || die "Failed to change dir to /"
 
     # --- Format root as BTRFS ---
     echo "Formating $ROOT_PART"
-    mkfs.btrfs -L BTROOT "/dev/mapper/$LUKS_ROOT_NAME" || { echo "Failed to create btrfs"; exit 1; }
+    mkfs.btrfs -L BTROOT "/dev/mapper/$LUKS_ROOT_NAME" || die "Failed to create btrfs"
 
     # --- Temporarily mount top-level ONLY to create subvolumes ---
     echo "Temporarily mounting filesystem to $BTRFS_TEMP_MOUNT for subvolume creation"
@@ -301,12 +301,12 @@ function disk_format() {
 
     echo "creation of subvolumes"
     for sub in activeroot home etc var log tmp; do
-        btrfs subvolume create "$BTRFS_TEMP_MOUNT/$sub" || { echo "Failed to create subvolume $sub"; exit 1; }
+        btrfs subvolume create "$BTRFS_TEMP_MOUNT/$sub" || die "Failed to create subvolume $sub"
     done
 
     # Unmount top-level immediately after subvolume creation
     echo "Unmounting $BTRFS_TEMP_MOUNT"
-    umount "$BTRFS_TEMP_MOUNT" || { echo "Failed to unmount $BTRFS_TEMP_MOUNT"; exit 1; }
+    umount "$BTRFS_TEMP_MOUNT" || "Failed to unmount $BTRFS_TEMP_MOUNT"
 
     # --- Mount activeroot DIRECTLY to /mnt/gentoo (the chroot target) ---
     echo "Mounting activeroot subvolume to $ROOT_MOUNTPOINT"
@@ -343,13 +343,13 @@ function stage3() {
 
 	# Download upstream list of files
 	CURRENT_STAGE3="$(download_stdout "$STAGE3_RELEASES")" \
-		|| { echo "Could not retrieve list of tarballs"; exit 1;}
+		|| die "Could not retrieve list of tarballs"
 	# Decode urlencoded strings
 	CURRENT_STAGE3=$(python3 -c 'import sys, urllib.parse; print(urllib.parse.unquote(sys.stdin.read()))' <<< "$CURRENT_STAGE3")
 	# Parse output for correct filename
 	CURRENT_STAGE3="$(grep -o "\"${STAGE3_BASENAME_FINAL}-[0-9A-Z]*.tar.xz\"" <<< "$CURRENT_STAGE3" \
 		| sort -u | head -1)" \
-		|| { echo "Could not parse list of tarballs"; exit 1;}
+		|| die "Could not parse list of tarballs"
 	# Strip quotes
 	CURRENT_STAGE3="${CURRENT_STAGE3:1:-1}"
 	# File to indiciate successful verification
@@ -367,14 +367,14 @@ function stage3() {
 		einfo "Importing gentoo gpg key"
 		local GENTOO_GPG_KEY="$TMP_DIR/gentoo-keys.gpg"
 		download "https://gentoo.org/.well-known/openpgpkey/hu/wtktzo4gyuhzu8a4z5fdj3fgmr1u6tob?l=releng" "$GENTOO_GPG_KEY" \
-			|| { echo "Could not retrieve gentoo gpg key"; exit 1;}
+			|| die "Could not retrieve gentoo gpg key"
 		gpg --quiet --import < "$GENTOO_GPG_KEY" \
-			|| { echo "Could not import gentoo gpg key"; exit 1;}
+			|| die "Could not import gentoo gpg key"
 
 		# Verify DIGESTS signature
 		einfo "Verifying tarball signature"
 		gpg --quiet --verify "${CURRENT_STAGE3}.DIGESTS" \
-			|| { echo "Signature of '${CURRENT_STAGE3}.DIGESTS' invalid!"; exit 1;}
+			|| die "Signature of '${CURRENT_STAGE3}.DIGESTS' invalid!"
 
 		# Check hashes
         einfo "Verifying tarball integrity"
@@ -385,15 +385,15 @@ function stage3() {
         # 2. Reconstruct the exact string sha512sum expects: "<hash>  <exact_filename>" (MUST be two spaces!)
         clean_digest="${raw_hash}  ${CURRENT_STAGE3}"
         sha512sum --check <<< "$clean_digest" \
-            || { echo "Checksum mismatch! sha512sum"; exit 1;}
+            || die "Checksum mismatch! sha512sum"
 	fi
 
 	echo "sleep... 5 seconds"
 	sleep 5
 
-    echo "Extracting Stage 3 tarball"
+    einfo "Extracting Stage 3 tarball"
     tar xpvf "${CURRENT_STAGE3}" --xattrs-include='*.*' --numeric-owner -C /mnt/gentoo \
-        || { echo "Failed to extract $STAGE3_FILENAME to /mnt/gentoo"; exit 1; }
+        || die "Failed to extract $STAGE3_FILENAME to /mnt/gentoo"
 
     # --- Add this block ---
     echo "Verifying Stage 3 extraction..."
@@ -415,48 +415,58 @@ function config_system_outside_chroot() {
     echo "Found BTROOT at $ROOT_DEV"
 
     echo "Editing fstab"
-    cat << EOF > /mnt/gentoo/etc/fstab || { echo "Failed to edit fstab with EOF"; exit 1; }
-#Swap
-/dev/mapper/cryptswap   none    swap    sw                                           0 0
+    cat << EOF > /mnt/gentoo/etc/fstab || die "Failed to edit fstab with EOF"
+#SWAP
+/dev/mapper/cryptswap   none    swap    sw                                                       0 0
 
-#Root
-LABEL=BTROOT    /       btrfs   defaults,noatime,compress=zstd,subvol=activeroot     0 0
-LABEL=BTROOT    /home   btrfs   defaults,noatime,compress=zstd,subvol=home           0 0
-LABEL=BTROOT    /etc    btrfs   defaults,noatime,compress=zstd,subvol=etc            0 0
-LABEL=BTROOT    /var    btrfs   defaults,noatime,compress=zstd,subvol=var            0 0
-LABEL=BTROOT    /log    btrfs   defaults,noatime,compress=zstd,subvol=log            0 0
+#ROOT
+LABEL=BTROOT    /       btrfs   defaults,noatime,compress=zstd,subvol=activeroot                 0 0
+LABEL=BTROOT    /home   btrfs   defaults,noatime,compress=zstd,subvol=home                       0 0
+LABEL=BTROOT    /etc    btrfs   defaults,noatime,compress=zstd,subvol=etc                        0 0
+LABEL=BTROOT    /var    btrfs   defaults,noatime,compress=zstd,subvol=var                        0 0
+LABEL=BTROOT    /log    btrfs   defaults,noatime,compress=zstd,subvol=log                        0 0
 LABEL=BTROOT    /tmp    btrfs   defaults,noatime,nosuid,nodev,noexec,compress=zstd,subvol=tmp    0 0
+
+# EFI
 EOF
 
-    echo "fstab set"
+    einfo "fstab set"
 
     echo "Copying DNS info to /mnt/gentoo/etc/"
     cp --dereference /etc/resolv.conf /mnt/gentoo/etc/
 
-    echo "setting up loclale.gen"
+    einfo "setting up loclale.gen"
     sed -i "s/#$LOCALE/$LOCALE/g" /mnt/gentoo/etc/locale.gen
     # If dualboot uncomment below
     # sed -i "s/clock=\"UTC\"/clock=\"local\"/g" ./etc/conf.d/hwclock
-    echo "Changing to keyboard laytout"
-    sed -i "s/keymap=\"us\"/keymaps=\"$KEYMAP\"/g" /mnt/gentoo/etc/conf.d/keymaps
-    echo "Setting lang and lc_collate"
+    einfo "Changing to keyboard laytout"
+    echo "keymap=\"$KEYMAP\"" > /mnt/gentoo/etc/conf.d/keymaps
+    einfo "Setting lang and lc_collate"
     echo 'LANG="en_US.UTF-8"' >> /mnt/gentoo/etc/locale.conf
     echo 'LC_COLLATE="C.UTF-8"' >> /mnt/gentoo/etc/locale.conf
-    echo "Setting timezone"
+    einfo "Setting timezone"
     echo "$TIMEZONE" > /mnt/gentoo/etc/timezone
+    einfo "Setting hostname to $HOSTNAME"
+    # Set hostname
+    echo "hostname=\"$HOSTNAME\"" > /mnt/gentoo/etc/conf.d/hostname
+    # Also update /etc/hosts with the hostname
+    cat >> /mnt/gentoo/etc/hosts << EOF
+127.0.0.1   $HOSTNAME localhost
+::1         $HOSTNAME localhost
+EOF
 
-    echo "Succesfully configure basic system"
+    einfo "Succesfully configure basic system"
 }
 
 function config_portage() {
 
-    echo "copying over portage from install to /mnt/gentoo/etc/portage/"
+    einfo "Copying over portage from install to /mnt/gentoo/etc/portage/"
     echo "Copying make.conf"
     cp ~/gentoo-install/portage/make.conf /mnt/gentoo/etc/portage/  \
-        || { echo "Failed to copy over make.conf"; exit 1;}
+        || die "Failed to copy over make.conf"
     echo "Copying package.use folder"
     cp ~/gentoo-install/portage/package.use/* /mnt/gentoo/etc/portage/package.use \
-        || { echo "Failed to copy over portage/package.use/*"; exit 1;}
+        || die "Failed to copy over portage/package.use/*"
 
 }
 
@@ -476,9 +486,9 @@ function gentoo_chroot () {
     bind_repo_dir
 
     # Copy resolv.conf
-    echo "Preparing chroot environment"
+    einfo "Preparing chroot environment"
     install --mode=0644 /etc/resolv.conf "$chroot_dir/etc/resolv.conf" \
-        || { echo "Could not copy resolv.conf"; exit 1;}
+        || die "Could not copy resolv.conf"
 
     # Mount virtual filesystems
     einfo "Mounting virtual filesystems"
@@ -522,7 +532,7 @@ function gentoo_chroot () {
         CHROOT_SWAP_UUID="$CHROOT_SWAP_UUID" \
         CHROOT_SWAP_UNDERLYING_UUID="$CHROOT_SWAP_UNDERLYING_UUID" \
         exec chroot -- "$chroot_dir" "$CHROOT_SCRIPT_PATH" "$@" \
-        || { echo "Failed to chroot into '$chroot_dir'."; exit 1;}
+        || die "Failed to chroot into '$chroot_dir'."
 }
 
 function bind_repo_dir() {
@@ -556,7 +566,7 @@ function mount_efivars() {
 	# Mount efivars
 	einfo "Mounting efivars"
 	mount -o remount,rw -t efivarfs efivarfs /sys/firmware/efi/efivars \
-		|| { echo "Could not mount efivarfs"; exit 1;}
+		|| die "Could not mount efivarfs"
 
 }
 

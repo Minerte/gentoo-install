@@ -57,7 +57,7 @@ function main_install_gentoo_in_chroot() {
 
     # FIX: Ensure /efi is mounted on boot (GPG keys live here)
     if ! grep -q "/efi" /etc/fstab; then
-        echo "UUID=$CHROOT_EFI_UUID  /efi  vfat  defaults,noatime  0 2" >> /etc/fstab
+        echo "UUID=$CHROOT_EFI_UUID    /efi    vfat   defaults,noatime                                    0 2" >> /etc/fstab
     fi
 
     # FIX: Kernel command line for uefi-mkconfig / ugrd / LUKS root
@@ -70,7 +70,8 @@ function main_install_gentoo_in_chroot() {
 
     mkdir -p /etc/kernel
     cat > /etc/kernel/cmdline << 'EOF'
-root=UUID=${root_uuid} rd.luks.uuid=${root_luks_uuid} rootflags=subvol=activeroot ro
+root=UUID=${root_uuid} rd.luks.uuid=${root_luks_uuid} rootflags=subvol=activeroot ro 
+resume=UUID=${swap_uuid}
 EOF
 
     # FIX: Explicit USE flags so installkernel knows we want efistub + ugrd
@@ -85,7 +86,7 @@ EOF
 
     einfo "Adding cpuflags"
     try emerge --oneshot app-portage/cpuid2cpuflags
-    sleep 3
+    sleep 5
 
     einfo "Adding cpuflag to make.conf"
     CPU_FLAGS=$(cpuid2cpuflags | cut -d' ' -f2-)
@@ -120,7 +121,8 @@ EOF
     echo "Emerging tools"
     try emerge --verbose sys-block/io-scheduler-udev-rules \
     sys-apps/mlocate dev-vcs/git net-misc/networkmanager \
-    app-shells/bash-completion net-misc/chrony
+    app-shells/bash-completion net-misc/chrony app-admin/sysklogd \
+    sys-process/cronie sys-auth/seatd
 
     enable_service
 
@@ -232,8 +234,6 @@ function install_kernel() {
         ./scripts/config --enable CONFIG_X86_AMD_PLATFORM_DEVICE
         ./scripts/config --enable CONFIG_AMD_PMC
 
-        sleep 10
-
         # NVME
         ./scripts/config --module CONFIG_NVME_CORE
         ./scripts/config --enable CONFIG_BLK_DEV_NVME
@@ -248,51 +248,36 @@ function install_kernel() {
         ./scripts/config --module CONFIG_NVME_TARGET_TCP
         ./scripts/config --module CONFIG_NVME_TARGET_AUTH
 
-        # Kernel Command
-        # Kernel Command - auto-detect UUIDs from chroot environment
-        # local root_uuid="${CHROOT_ROOT_UUID:-}"
-        # local root_luks_uuid="${CHROOT_ROOT_UNDERLYING_UUID:-}"
-        # local swap_uuid="${CHROOT_SWAP_UUID:-}"
-
-        # [[ -n "$root_uuid" ]] || die "CHROOT_ROOT_UUID is empty - cannot set root= in kernel cmdline"
-        # [[ -n "$root_luks_uuid" ]] || die "CHROOT_ROOT_UNDERLYING_UUID is empty - cannot set rd.luks.uuid="
-
-        # local kernel_cmdline="root=UUID=${root_uuid} rd.luks.uuid=${root_luks_uuid} rootflags=subvol=activeroot ro"
-
-        # # Add resume for hibernation if swap UUID was detected
-        # if [[ -n "$swap_uuid" ]]; then
-        #     kernel_cmdline+=" resume=UUID=${swap_uuid}"
-        # fi
-
-        # einfo "Setting kernel cmdline: $kernel_cmdline"
-
-        # ./scripts/config --enable CONFIG_CMDLINE_BOOL
-        # ./scripts/config --set-str CONFIG_CMDLINE "$kernel_cmdline"
-        # ./scripts/config --enable CONFIG_CMDLINE_EXTEND
-        # # OR
-        # # ./scripts/config --enable CONFIG_CMDLINE_FORCE    # Kernel cmdline overrides everything
-        # sleep 10
-        # extra
+        # EXTRA
         ./scripts/config --enable CONFIG_DM_INIT
         ./scripts/config --enable CONFIG_DAX
         ./scripts/config --enable CONFIG_RD_ZSTD
 
+        sleep 5
         make olddefconfig || die "make olddefconfig failed after scripts/config"
+        sleep 5
     fi
 
     echo "Compiling kernel with ${NPROC} jobs"
-    make -j"${NPROC}" || die "Kernel compilation failed"
-    sleep 3
+    try make -j"${NPROC}" || die "Kernel compilation failed"
+    sleep 5
 
     echo "Installing modules"
-    make modules_install || die "make modules_install failed"
-    sleep 3
+    try make modules_install || die "make modules_install failed"
+    sleep 5
 
-    cp /usr/src/linux/arch/x86_64/boot/bzImage /efi/EFI/Gentoo/vmlinuz-6.18.39-gentoo.efi
+    # Determine the kernel version
+    local kver
+    kver=$(make -C /usr/src/linux -s kernelrelease 2>/dev/null) \
+        || kver=$(cat /usr/src/linux/include/config/kernel.release 2>/dev/null) \
+        || die "Could not detect kernel version from /usr/src/linux"
+
+    cp /usr/src/linux/arch/x86_64/boot/bzImage "/efi/EFI/Gentoo/vmlinuz-${kver}-gentoo.efi"
+    sleep 5
 
     echo "Installing kernel (triggers installkernel hooks -> ugrd -> uefi-mkconfig)"
-    make install || die "make install failed"
-    sleep 20
+    try make install || die "make install failed"
+    sleep 10
 
     setup_efistub_boot
 
@@ -303,7 +288,6 @@ function install_kernel() {
 function generate_initramfs() {
     echo "Compiling initramfs"
     try emerge --verbose sys-kernel/ugrd
-    sleep 20
 
     echo  "Generating initramfs"
     sleep 5
@@ -357,8 +341,18 @@ EOF
 function enable_service() {
     echo "Enable services"
 
-    try rc-update add NetworkManager default
-    try rc-update add chronyd default
+    try rc-update del dhcpcd default || die "rc-update del dhcpcd default failed"
+    try rc-service dhcpcd stop || die "rc-service dhcpcd stop failed"
+    
+    try rc-update add NetworkManager default || die "rc-update add NetworkManager default failed"
+    try rc-update add chronyd default || die "rc-update add chronyd default failed"
+    try rc-update add cronie default || die "rc-update add cronie default failed"
+    try rc-update add seatd default || die "rc-updtae add seatd default failed"
+    try rc-update add hostname boot || die "rc-update add hostname boot"
+    try rc-update add dbus default || die "rc-update add dbus default failed"
+    try rc-update add keymaps boot || die "rc-update add keymaps boot failed"
+    
+    
 }
 
 function setup_efistub_boot() {
