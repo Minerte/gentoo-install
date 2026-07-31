@@ -102,7 +102,7 @@ EOF
     fi
 
     einfo "Re-emerge ALL system apps"
-    try emerge --emptytree -a -1 @installed
+    # try emerge --emptytree -a -1 @installed
 
     try emerge --oneshot sys-apps/openrc
     echo "merging filesystem"
@@ -117,12 +117,12 @@ EOF
     install_kernel
 
     echo "Emerging tools"
-    try emerge --verbose sys-block/io-scheduler-udev-rules \
-    sys-apps/mlocate dev-vcs/git net-misc/networkmanager \
-    app-shells/bash-completion net-misc/chrony app-admin/sysklogd \
-    sys-process/cronie sys-auth/seatd
+    # try emerge --verbose sys-block/io-scheduler-udev-rules \
+    # sys-apps/mlocate dev-vcs/git net-misc/networkmanager \
+    # app-shells/bash-completion net-misc/chrony app-admin/sysklogd \
+    # sys-process/cronie sys-auth/seatd
 
-    enable_service
+    # enable_service
 
     echo "Set root password"
     passwd
@@ -239,7 +239,7 @@ function install_kernel() {
         ./scripts/config --module CONFIG_NVME_FC
         ./scripts/config --module CONFIG_NVME_TCP
         ./scripts/config --module CONFIG_NVME_KEYRING
-        ./scripts/config --module CONFIG_NVME_AUTH
+        ./scripts/config --enable CONFIG_NVME_AUTH
         ./scripts/config --module CONFIG_NVME_TARGET
         ./scripts/config --module CONFIG_NVME_TARGET_LOOP
         ./scripts/config --module CONFIG_NVME_TARGET_FC
@@ -375,7 +375,7 @@ function setup_efistub_boot() {
 
     # Convert forward slashes to EFI backslashes
     local loader_path initrd_path
-    loader_path="\EFI\${efi_vmlinuz//\//\\}"
+    loader_path="\${efi_vmlinuz//\//\\}"
     [[ -n "$efi_initramfs" ]] && initrd_path="\\${efi_initramfs//\//\\}"
 
     einfo "ESP loader:  $loader_path"
