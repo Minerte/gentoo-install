@@ -17,7 +17,6 @@ function main_install() {
 }
 
 function install_stage3() {
-
     echo "Validating configuration..."
     validate_variable "EFI_DISK"
     validate_variable "ROOT_DISK"
@@ -37,7 +36,6 @@ function install_stage3() {
     stage3
     config_system_outside_chroot
     config_portage
-
 }
 
 function main_install_gentoo_in_chroot() {
@@ -272,7 +270,9 @@ function install_kernel() {
         || kver=$(cat /usr/src/linux/include/config/kernel.release 2>/dev/null) \
         || die "Could not detect kernel version from /usr/src/linux"
 
-    cp /usr/src/linux/arch/x86_64/boot/bzImage "/efi/EFI/Gentoo/vmlinuz-${kver}-gentoo.efi"
+    cp /usr/src/linux/arch/x86_64/boot/bzImage "/efi/EFI/Gentoo/vmlinuz-${kver}-gentoo.efi" \
+        || die "Could not copy bzImage to /efi/EFI/Gentoo/vmlinuz-$kver-gentoo.efi"
+    einfo "bzImage to /efi/EFI/Gentoo/vmlinuz-$kver-gentoo.efi copied successfully"
     sleep 5
 
     echo "Installing kernel (triggers installkernel hooks -> ugrd -> uefi-mkconfig)"
@@ -309,12 +309,14 @@ function generate_initramfs() {
     cat > "$config_file" << EOF
 modules = [
     "ugrd.base.console",
+    "ugrd.base.keymap",
     "ugrd.kmod.usb",
     "ugrd.crypto.cryptsetup",
     "ugrd.crypto.gpg",
     "ugrd.fs.btrfs"
 ]
 
+keymap_file = "/usr/share/keymaps/i386/qwerty/sv-latin1.map.gz"
 kmod_autodetect_lspci = true
 
 # Changed from /boot to /efi to match your fstab and disk layout
@@ -351,8 +353,6 @@ function enable_service() {
     try rc-update add hostname boot || die "rc-update add hostname boot"
     try rc-update add dbus default || die "rc-update add dbus default failed"
     try rc-update add keymaps boot || die "rc-update add keymaps boot failed"
-    
-    
 }
 
 function setup_efistub_boot() {

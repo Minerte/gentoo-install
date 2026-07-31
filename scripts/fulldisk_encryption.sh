@@ -1,5 +1,3 @@
-# Helper funtions
-
 function cache_lsblk_output() {
 	CACHED_LSBLK_OUTPUT="$(lsblk --all --path --pairs --output NAME,PTUUID,PARTUUID)" \
 		|| die "Error while executing lsblk to cache output"
@@ -146,9 +144,9 @@ function verify_partitions() {
     echo ""
 
     # Prompt for confirmation. Using 'yes' instead of 'y' prevents accidental Enter presses.
-    read -p "Does the layout match your expectations? Type 'yes' to continue: " confirm
+    read -p "Does the layout match your expectations? Type 'YES' to continue: " confirm
 
-    if [[ "$confirm" != "yes" ]]; then
+    if [[ "$confirm" != "YES" ]]; then
         echo "Aborting script. No filesystems were created."
         exit 1
     fi
@@ -177,9 +175,7 @@ function check_config() {
 		|| die "'$HOSTNAME' is not a valid hostname"
 }
 
-
 function setup_disk() {
-
     echo "Starting disk setup"
 
     read -r -p "You are about to format the disk $EFI_DISK and $ROOT_DISK Are you sure? (y/n) " confirm
@@ -204,7 +200,6 @@ function setup_disk() {
 }
 
 function disk_format() {
-
     echo "Formating $EFI_PART"
     mkfs.vfat -F 32 "$EFI_PART"
 
@@ -331,7 +326,6 @@ function disk_format() {
 }
 
 function stage3() {
-
 	local STAGE3_BASENAME_FINAL
 	if [[ ("$GENTOO_ARCH" == "amd64" && "$STAGE3_VARIANT" == *x32*) || ("$GENTOO_ARCH" == "x86" && -n "$GENTOO_SUBARCH") ]]; then
 		STAGE3_BASENAME_FINAL="$STAGE3_BASENAME_CUSTOM"
@@ -459,7 +453,6 @@ EOF
 }
 
 function config_portage() {
-
     einfo "Copying over portage from install to /mnt/gentoo/etc/portage/"
     echo "Copying make.conf"
     cp ~/gentoo-install/portage/make.conf /mnt/gentoo/etc/portage/  \
@@ -467,7 +460,6 @@ function config_portage() {
     echo "Copying package.use folder"
     cp ~/gentoo-install/portage/package.use/* /mnt/gentoo/etc/portage/package.use \
         || die "Failed to copy over portage/package.use/*"
-
 }
 
 function gentoo_chroot () {
@@ -558,7 +550,6 @@ function bind_repo_dir() {
     einfo "Bind mount verified: dispatch_chroot.sh exists"
 }
 function mount_efivars() {
-
 	# Skip if already mounted
 	mountpoint -q -- "/sys/firmware/efi/efivars" \
 		&& return
@@ -567,7 +558,6 @@ function mount_efivars() {
 	einfo "Mounting efivars"
 	mount -o remount,rw -t efivarfs efivarfs /sys/firmware/efi/efivars \
 		|| die "Could not mount efivarfs"
-
 }
 
 function export_disk_uuids() {
