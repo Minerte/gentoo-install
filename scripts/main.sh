@@ -67,10 +67,6 @@ function main_install_gentoo_in_chroot() {
     [[ -n "$root_luks_uuid" ]] || die "CHROOT_ROOT_UNDERLYING_UUID is empty - cannot set rd.luks.uuid="
 
     mkdir -p /etc/kernel
-    cat > /etc/kernel/cmdline << 'EOF'
-root=UUID=${root_uuid} rd.luks.uuid=${root_luks_uuid} rootflags=subvol=activeroot ro 
-resume=UUID=${swap_uuid}
-EOF
 
     # FIX: Explicit USE flags so installkernel knows we want efistub + ugrd
     mkdir -p /etc/portage/package.use
@@ -270,9 +266,9 @@ function install_kernel() {
         || kver=$(cat /usr/src/linux/include/config/kernel.release 2>/dev/null) \
         || die "Could not detect kernel version from /usr/src/linux"
 
-    cp /usr/src/linux/arch/x86_64/boot/bzImage "/efi/EFI/Gentoo/vmlinuz-${kver}-gentoo.efi" \
-        || die "Could not copy bzImage to /efi/EFI/Gentoo/vmlinuz-$kver-gentoo.efi"
-    einfo "bzImage to /efi/EFI/Gentoo/vmlinuz-$kver-gentoo.efi copied successfully"
+    cp /usr/src/linux/arch/x86_64/boot/bzImage "/efi/EFI/Gentoo/vmlinuz-${kver}.efi" \
+        || die "Could not copy bzImage to /efi/EFI/Gentoo/vmlinuz-$kver.efi"
+    einfo "bzImage to /efi/EFI/Gentoo/vmlinuz-$kver.efi copied successfully"
     sleep 5
 
     echo "Installing kernel (triggers installkernel hooks -> ugrd -> uefi-mkconfig)"
