@@ -233,7 +233,7 @@ function install_kernel() {
         ./scripts/config --enable CONFIG_AMD_PMC
 
         # NVME
-        ./scripts/config --module CONFIG_NVME_CORE
+        ./scripts/config --enable CONFIG_NVME_CORE
         ./scripts/config --enable CONFIG_BLK_DEV_NVME
         ./scripts/config --module CONFIG_NVME_FABRICS
         ./scripts/config --module CONFIG_NVME_FC
@@ -342,9 +342,8 @@ EOF
 
 function enable_service() {
     echo "Enable services"
-
-    try rc-update del dhcpcd default || die "rc-update del dhcpcd default failed"
     try rc-service dhcpcd stop || die "rc-service dhcpcd stop failed"
+    try rc-update del dhcpcd || die "rc-update del dhcpcd default failed"
     
     try rc-update add NetworkManager default || die "rc-update add NetworkManager default failed"
     try rc-update add chronyd default || die "rc-update add chronyd default failed"
