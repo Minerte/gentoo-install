@@ -339,8 +339,7 @@ EOF
 function enable_service() {
     echo "Enable services"
     try rc-service dhcpcd stop || die "rc-service dhcpcd stop failed"
-    try rc-update del dhcpcd || die "rc-update del dhcpcd default failed"
-    
+
     try rc-update add NetworkManager default || die "rc-update add NetworkManager default failed"
     try rc-update add chronyd default || die "rc-update add chronyd default failed"
     try rc-update add cronie default || die "rc-update add cronie default failed"
@@ -348,6 +347,8 @@ function enable_service() {
     try rc-update add hostname boot || die "rc-update add hostname boot"
     try rc-update add dbus default || die "rc-update add dbus default failed"
     try rc-update add keymaps boot || die "rc-update add keymaps boot failed"
+
+    try rc-service NetworkManager start || die "rc-service NetworkManager start failed"
 }
 
 function setup_efistub_boot() {
@@ -432,4 +433,104 @@ function setup_efistub_boot() {
 
     einfo "EFISTUB boot entry created successfully"
     efibootmgr | grep -i gentoo || true
+
+    einfo "Creating an efibootmgr update entry script"
+    cat > "/efi/efibootmgr_update_entry.sh" << 'EOF'
+#!/bin/bash
+# update-efi-boot.sh
+# Detect newest kernel & initramfs on ESP, create/update EFISTUB boot entry
+
+set -euo pipefail
+
+# ----- Configuration (can be hardcoded or sourced) -----
+# The UUIDs below should match your original setup.
+# You can also let the script auto-detect them from fstab or blkid.
+# If you want to keep them dynamic, uncomment and adjust.
+# EFI_UUID="$(blkid -s UUID -o value /dev/disk/by-uuid/...)"
+# ROOT_UUID="..."          # BTRFS filesystem UUID (inside LUKS)
+# ROOT_LUKS_UUID="..."     # LUKS partition UUID
+# SWAP_UUID="..."          # swap filesystem UUID (inside LUKS, optional)
+
+# Instead of hardcoding, we derive from the running system:
+EFI_DEV="$(findmnt -n -o SOURCE /efi)"       # e.g. /dev/sde1
+EFI_DISK="$(lsblk -dn -o PKNAME "$EFI_DEV")" # e.g. sde
+EFI_PART="$(cat "/sys/class/block/$(basename "$EFI_DEV")/partition" 2>/dev/null || echo "1")"
+[[ -b "/dev/$EFI_DISK" ]] || { echo "Error: cannot determine EFI disk"; exit 1; }
+
+# Read UUIDs from the environment or from fstab (fallback)
+# You can also source a config file if you store them.
+# For a self‑contained script, we'll parse from /etc/fstab inside chroot,
+# but since this script runs on the host after chroot, we rely on environment variables.
+# If not set, try to read from /etc/fstab (works if run inside the installed system).
+if [[ -z "${CHROOT_EFI_UUID:-}" ]]; then
+    # try to get EFI UUID from /etc/fstab (if run inside the installed system)
+    EFI_UUID="$(awk '$2 == "/efi" {print $1}' /etc/fstab | cut -d= -f2)"
+    ROOT_UUID="$(awk '$2 == "/" && $3 == "btrfs" {print $1}' /etc/fstab | cut -d= -f2)"
+    ROOT_LUKS_UUID="$(blkid -s UUID -o value /dev/disk/by-uuid/...)" # you can also parse from kernel cmdline
+else
+    EFI_UUID="$CHROOT_EFI_UUID"
+    ROOT_UUID="$CHROOT_ROOT_UUID"
+    ROOT_LUKS_UUID="$CHROOT_ROOT_UNDERLYING_UUID"
+    SWAP_UUID="${CHROOT_SWAP_UUID:-}"
+fi
+
+# If still empty, exit with error
+: "${EFI_UUID:?EFI UUID not set}"
+: "${ROOT_UUID:?Root BTRFS UUID not set}"
+: "${ROOT_LUKS_UUID:?Root LUKS UUID not set}"
+
+# Build cmdline (use your exact flags)
+CMDLINE="root=UUID=${ROOT_UUID} rd.luks.uuid=${ROOT_LUKS_UUID} rootflags=subvol=activeroot ro"
+[[ -n "${SWAP_UUID:-}" ]] && CMDLINE+=" resume=UUID=${SWAP_UUID}"
+
+# Find the newest kernel and initramfs on /efi
+# Paths: /efi/EFI/Gentoo/vmlinuz-*.efi  and /efi/EFI/Gentoo/initramfs-*.img
+ESP_DIR="/efi/EFI/Gentoo"
+if [[ ! -d "$ESP_DIR" ]]; then
+    echo "Error: $ESP_DIR not found"
+    exit 1
+fi
+
+# Get newest kernel by version sort (extract version from filename)
+latest_kernel="$(find "$ESP_DIR" -maxdepth 1 -name 'vmlinuz-*.efi' -printf '%f\n' | sort -V | tail -n1)"
+latest_initrd="$(find "$ESP_DIR" -maxdepth 1 -name 'initramfs-*.img' -printf '%f\n' | sort -V | tail -n1)"
+
+[[ -n "$latest_kernel" ]] || { echo "No kernel found in $ESP_DIR"; exit 1; }
+
+# Convert paths to EFI-style (backslashes)
+loader="\EFI\Gentoo\${latest_kernel}"
+initrd=""
+if [[ -n "$latest_initrd" ]]; then
+    initrd="\EFI\Gentoo\${latest_initrd}"
+fi
+
+echo "Latest kernel: $latest_kernel"
+echo "Latest initrd: ${latest_initrd:-<none>}"
+echo "EFI disk: /dev/$EFI_DISK, part: $EFI_PART"
+echo "Cmdline: $CMDLINE"
+
+# Remove existing Gentoo boot entries
+efibootmgr | awk '/Boot[0-9A-F]{4}\*? Gentoo/ {gsub(/Boot|\*/,"",$1); print $1}' | while read -r num; do
+    echo "Removing old boot entry Boot$num"
+    efibootmgr --bootnum "$num" --delete-bootnum >/dev/null 2>&1 || true
+done
+
+# Create the new entry
+if [[ -n "$initrd" ]]; then
+    efibootmgr --create --disk "/dev/$EFI_DISK" --part "$EFI_PART" \
+               --label "Gentoo" --loader "$loader" \
+               --unicode "initrd=${initrd} ${CMDLINE}"
+else
+    efibootmgr --create --disk "/dev/$EFI_DISK" --part "$EFI_PART" \
+               --label "Gentoo" --loader "$loader" \
+               --unicode "${CMDLINE}"
+fi
+
+echo "New EFISTUB boot entry created."
+efibootmgr | grep -i gentoo || true
+
+EOF
+
+    chmod +x "/efi/efibootmgr_update_entry.sh"
+    einfo "Created successfully"
 }

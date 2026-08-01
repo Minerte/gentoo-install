@@ -1,1 +1,5 @@
+# Kernel
 sys-kernel/installkernel efistub ugrd
+
+# Network
+net-wireless/wpa_supplicant dbus
