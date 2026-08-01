@@ -3,3 +3,6 @@ sys-kernel/installkernel efistub ugrd
 
 # Network
 net-wireless/wpa_supplicant dbus
+
+# seatd
+sys-auth/seatd builtin server
