@@ -100,9 +100,10 @@ function main_install_gentoo_in_chroot() {
     fi
 
     einfo "Re-emerge ALL system apps"
-    # try emerge --emptytree -a -1 @installed
+    try emerge --emptytree -a -1 @installed
 
     try emerge --oneshot sys-apps/openrc
+    
     echo "merging filesystem"
     try emerge --verbose sys-fs/cryptsetup sys-fs/btrfs-progs \
         sys-fs/e2fsprogs sys-fs/dosfstools app-crypt/gnupg \
@@ -115,12 +116,12 @@ function main_install_gentoo_in_chroot() {
     install_kernel
 
     echo "Emerging tools"
-    # try emerge --verbose sys-block/io-scheduler-udev-rules \
-    # sys-apps/mlocate dev-vcs/git net-misc/networkmanager \
-    # app-shells/bash-completion net-misc/chrony app-admin/sysklogd \
-    # sys-process/cronie sys-auth/seatd
+    try emerge --verbose sys-block/io-scheduler-udev-rules \
+        sys-apps/mlocate dev-vcs/git net-misc/networkmanager \
+        app-shells/bash-completion net-misc/chrony app-admin/sysklogd \
+        sys-process/cronie sys-auth/seatd
 
-    # enable_service
+    enable_service
 
     echo "Set root password"
     passwd
