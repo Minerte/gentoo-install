@@ -1,3 +1,5 @@
+set -uo pipefail
+
 function main_install() {
     install_stage3
     mount_efivars
@@ -246,6 +248,12 @@ function install_kernel() {
         ./scripts/config --enable CONFIG_DM_INIT
         ./scripts/config --enable CONFIG_DAX
         ./scripts/config --enable CONFIG_RD_ZSTD
+
+        # SOUND pipewire
+        ./scripts/config --enable SOUND
+        ./scripts/config --enable SND
+        ./scripts/config --enable SND_PROC_FS
+        ./scripts/config --enable SND_VERBOSE_PROCFS
 
         sleep 5
         make olddefconfig || die "make olddefconfig failed after scripts/config"

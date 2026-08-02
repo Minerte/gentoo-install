@@ -6,3 +6,6 @@ net-wireless/wpa_supplicant dbus
 
 # seatd
 sys-auth/seatd builtin server
+
+# Piewire
+media-video/pipewire sound-server pipewire-alsa
