@@ -25,9 +25,6 @@ make modules_install
 # Install kernel (copies to /efi, generates initramfs via ugrd)
 make install
 
-# Now update EFI boot entry with your custom cmdline
-./efi/efibootmgr_update_entry.sh
-
 # Reboot to test the new kernel
 reboot
 ```

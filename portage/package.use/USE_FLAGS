@@ -9,3 +9,8 @@ sys-auth/seatd builtin server
 
 # Piewire
 media-video/pipewire sound-server pipewire-alsa
+
+# GPU drivers
+media-libs/libglvnd X
+media-libs/freetype harfbuzz
+x11-libs/cairo X
