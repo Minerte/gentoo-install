@@ -78,8 +78,8 @@ function main_install_gentoo_in_chroot() {
     echo "Uncommented and set CPU_FLAGS_X86 in make.conf"
     sleep 5
 
-    einfo "Re-emerge ALL system apps"
-    try emerge --emptytree -1 @installed
+    # einfo "Re-emerge ALL system apps"
+    # try emerge --emptytree -1 @installed
     
     echo "merging filesystem"
     try emerge --verbose sys-fs/cryptsetup sys-fs/btrfs-progs \
@@ -92,13 +92,13 @@ function main_install_gentoo_in_chroot() {
 
     install_kernel
 
-    echo "Emerging tools"
-    try emerge --verbose sys-block/io-scheduler-udev-rules \
-        sys-apps/mlocate dev-vcs/git net-misc/networkmanager \
-        app-shells/bash-completion net-misc/chrony app-admin/sysklogd \
-        sys-process/cronie sys-auth/seatd
+    # echo "Emerging tools"
+    # try emerge --verbose sys-block/io-scheduler-udev-rules \
+    #     sys-apps/mlocate dev-vcs/git net-misc/networkmanager \
+    #     app-shells/bash-completion net-misc/chrony app-admin/sysklogd \
+    #     sys-process/cronie sys-auth/seatd
 
-    enable_service
+    # enable_service
 
     echo "Set root password"
     passwd
@@ -124,14 +124,15 @@ function install_kernel() {
     cd /usr/src/linux \
         || die "could not change to /usr/linux"
 
-    zcat /proc/config.gz > .config
-    make olddefconfig || die "make olddefconfig failed"
-    echo "olddefconfig dubug message only"
+    sleep 5
+    make defconfig || die "make defconfig failed"
+    echo "defconfig dubug message only"
     sleep 5
 
     kernel_script
 
     sleep 5
+    einfo "Update kernel"
     make olddefconfig || die "make olddefconfig failed after scripts/config"
     sleep 5
 
