@@ -80,7 +80,7 @@ function main_install_gentoo_in_chroot() {
 
     # einfo "Re-emerge ALL system apps"
     # try emerge --emptytree -1 @installed
-    
+
     echo "merging filesystem"
     try emerge --verbose sys-fs/cryptsetup sys-fs/btrfs-progs \
         sys-fs/e2fsprogs sys-fs/dosfstools app-crypt/gnupg \
@@ -124,6 +124,10 @@ function install_kernel() {
     cd /usr/src/linux \
         || die "could not change to /usr/linux"
 
+    sleep 5
+    zcat /proc/config.gz > .config
+    make olddefconfig || die "make olddefconfig failed"
+    echo "olddefconfig dubug message only"
     sleep 5
     make defconfig || die "make defconfig failed"
     echo "defconfig dubug message only"
