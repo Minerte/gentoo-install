@@ -103,6 +103,8 @@ function main_install_gentoo_in_chroot() {
     echo "Set root password"
     passwd
 
+    try emerge x11-drivers/nvidia-drivers
+
     einfo "script completed"
 }
 

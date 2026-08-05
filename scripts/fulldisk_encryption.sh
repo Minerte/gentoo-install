@@ -310,7 +310,7 @@ function config_portage() {
     einfo "creating folder for env"
     mkdir -p /mnt/gentoo/etc/portage/env
     sleep 3
-    cp ~/gentoo-install/portage/env/* /mnt/gentoo/etc/portage/ \
+    cp ~/gentoo-install/portage/env/* /mnt/gentoo/etc/portage/env \
         || die "Failed to copy env folder"
     einfo "Successfully to copy over portage config to /mnt/gentoo/etc/portage"
 }
