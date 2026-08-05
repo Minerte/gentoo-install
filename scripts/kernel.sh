@@ -151,8 +151,10 @@ function kernel_script() {
 	# =============================================================================
 	try ./scripts/config --enable CONFIG_FB_EFI || die "module do not exit CONFIG_FB_EFI"
 	try ./scripts/config --enable CONFIG_DRM || die "module do not exit CONFIG_DRM"
+	try ./scripts/config --module CONFIG_DRM_AMDGPU || die "Failed to set CONFIG_DRM_AMDGPU"
 	try ./scripts/config --enable CONFIG_DRM_SIMPLEDRM || die "module do not exit CONFIG_DRM_SIMPLEDRM"
 	try ./scripts/config --enable CONFIG_DRM_TTM_HELPER || die "module do not exit CONFIG_DRM_TTM_HELPER"
+	try ./scripts/config --enable CONFIG_DRM_FBDEV_EMULATION || die "Failed to set CONFIG_DRM_FBDEV_EMULATION"
 	try ./scripts/config --enable CONFIG_FRAMEBUFFER_CONSOLE || die "module do not exit CONFIG_FRAMEBUFFER_CONSOLE"
 	try ./scripts/config --enable CONFIG_FRAMEBUFFER_CONSOLE_DETECT_PRIMARY || die "module do not exit CONFIG_FRAMEBUFFER_CONSOLE_DETECT_PRIMARY"
 
