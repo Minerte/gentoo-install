@@ -73,17 +73,10 @@ function main_install_gentoo_in_chroot() {
     einfo "Adding cpuflag to make.conf"
     CPU_FLAGS=$(cpuid2cpuflags | cut -d' ' -f2-)
     # 1. If the commented line exists, uncomment it and set the correct flags
-    if grep -q "^#CPU_FLAGS_X86=" /etc/portage/make.conf; then
-        sed -i "s/^#CPU_FLAGS_X86=.*/CPU_FLAGS_X86=\"${CPU_FLAGS}\"/" /etc/portage/make.conf \
-            || die "could not uncomment and set CPU_FLAGS_X86"
-        echo "Uncommented and set CPU_FLAGS_X86 in make.conf"
-
-    else
-        grep -q "^CPU_FLAGS_X86=" /etc/portage/make.conf
-        sed -i "s/^CPU_FLAGS_X86=.*/CPU_FLAGS_X86=\"${CPU_FLAGS}\"/" /etc/portage/make.conf \
-            || die "could not update CPU_FLAGS_X86"
-        echo "Updated CPU_FLAGS_X86 in make.conf"
-    fi
+    sed -i "s/^#CPU_FLAGS_X86=.*/CPU_FLAGS_X86=\"${CPU_FLAGS}\"/" /etc/portage/make.conf \
+        || die "could not uncomment and set CPU_FLAGS_X86"
+    echo "Uncommented and set CPU_FLAGS_X86 in make.conf"
+    sleep 5
 
     einfo "Re-emerge ALL system apps"
     try emerge --emptytree -1 @installed
@@ -131,27 +124,16 @@ function install_kernel() {
     cd /usr/src/linux \
         || die "could not change to /usr/linux"
 
-    # Seed config from the live environment if available
-    if [[ -f /proc/config.gz ]]; then
-        zcat /proc/config.gz > .config
-        make olddefconfig || die "make olddefconfig failed"
-        echo "olddefconfig dubug message only"
-        sleep 5
-    else
-        make defconfig || die "make defconfig failed"
-        echo "defconfig dubug message only"
-        sleep 5
-    fi
+    zcat /proc/config.gz > .config
+    make olddefconfig || die "make olddefconfig failed"
+    echo "olddefconfig dubug message only"
+    sleep 5
 
-    # Enable essentials for LUKS + Btrfs + EFI stub booting
-    if [[ -f scripts/config ]]; then
+    kernel_script
 
-        kernel_script
-
-        sleep 5
-        make olddefconfig || die "make olddefconfig failed after scripts/config"
-        sleep 5
-    fi
+    sleep 5
+    make olddefconfig || die "make olddefconfig failed after scripts/config"
+    sleep 5
 
     echo "Compiling kernel with ${NPROC} jobs"
     try make -j"${NPROC}" || die "Kernel compilation failed"
@@ -206,13 +188,16 @@ modules = [
     "ugrd.base.console",
     "ugrd.base.keymap",
     "ugrd.kmod.usb",
+    "ugrd.kmod.nvme",
     "ugrd.crypto.cryptsetup",
     "ugrd.crypto.gpg",
-    "ugrd.fs.btrfs"
+    "ugrd.fs.btrfs",
+    "ugrd.fs.resume"
 ]
 
 keymap_file = "/usr/share/keymaps/i386/qwerty/sv-latin1.map.gz"
 kmod_autodetect_lspci = true
+kmod_autodetect_lsmod = true
 
 # Changed from /boot to /efi to match your fstab and disk layout
 auto_mounts = ['/efi']
