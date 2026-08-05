@@ -14,3 +14,4 @@ media-video/pipewire sound-server pipewire-alsa
 media-libs/libglvnd X
 media-libs/freetype harfbuzz
 x11-libs/cairo X
+

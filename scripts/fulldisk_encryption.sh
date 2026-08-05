@@ -296,12 +296,16 @@ EOF
 
 function config_portage() {
     einfo "Copying over portage from install to /mnt/gentoo/etc/portage/"
-    echo "Copying make.conf"
+    einfo "Copying make.conf file to mnt/gentoo/etc/portage/"
     cp ~/gentoo-install/portage/make.conf /mnt/gentoo/etc/portage/  \
         || die "Failed to copy over make.conf"
-    echo "Copying package.use folder"
+    einfo "Copying package.use folder to mnt/gentoo/etc/portage/package.use"
     cp ~/gentoo-install/portage/package.use/* /mnt/gentoo/etc/portage/package.use \
-        || die "Failed to copy over portage/package.use/*"
+        || die "Failed to copy over package.use/*"
+    einfo "Copying package.license folder to /mnt/gentoo/etc/portage/package.license"
+    cp ~/gentoo-install/portage/package.license/* /mnt/gentoo/etc/portage/ \
+        || die "Failed to copy over package.license/*"
+    einfo "Successfully to copy over portage config to /mnt/gentoo/etc/portage"
 }
 
 function gentoo_chroot () {
