@@ -129,9 +129,6 @@ function install_kernel() {
     make olddefconfig || die "make olddefconfig failed"
     echo "olddefconfig dubug message only"
     sleep 5
-    make defconfig || die "make defconfig failed"
-    echo "defconfig dubug message only"
-    sleep 5
 
     kernel_script
 
