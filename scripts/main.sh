@@ -198,8 +198,7 @@ modules = [
 ]
 
 keymap_file = "/usr/share/keymaps/i386/qwerty/sv-latin1.map.gz"
-kmod_autodetect_lspci = true
-kmod_autodetect_lsmod = true
+late_resume = true
 
 # Changed from /boot to /efi to match your fstab and disk layout
 auto_mounts = ['/efi']
