@@ -190,7 +190,6 @@ modules = [
     "ugrd.base.console",
     "ugrd.base.keymap",
     "ugrd.kmod.usb",
-    "ugrd.kmod.nvme",
     "ugrd.crypto.cryptsetup",
     "ugrd.crypto.gpg",
     "ugrd.fs.btrfs",
