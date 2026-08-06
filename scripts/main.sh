@@ -88,6 +88,8 @@ function main_install_gentoo_in_chroot() {
 
     env_update
 
+    configure_kernel_cmdline
+
     generate_initramfs
 
     install_kernel
@@ -103,7 +105,7 @@ function main_install_gentoo_in_chroot() {
     echo "Set root password"
     passwd
 
-    try emerge x11-drivers/nvidia-drivers
+    try emerge --verbose x11-drivers/xf86-video-nouveau media-libs/mesa
 
     einfo "script completed"
 }
@@ -113,8 +115,8 @@ function install_kernel() {
     try emerge --oneshot --nodeps app-arch/cpio
 
     # Install efibootmgr first so uefi-mkconfig can use it
-    try emerge sys-boot/efibootmgr
-    try emerge sys-kernel/installkernel sys-kernel/linux-firmware
+    try emerge --verbose sys-boot/efibootmgr
+    try emerge --verbose sys-kernel/installkernel sys-kernel/linux-firmware sys-firmware/nvidia-firmware
 
     try emerge --verbose sys-kernel/gentoo-sources sys-apps/pciutils \
         sys-firmware/sof-firmware app-portage/gentoolkit
@@ -126,6 +128,7 @@ function install_kernel() {
     cd /usr/src/linux \
         || die "could not change to /usr/linux"
 
+    sleep 3
     zcat /proc/config.gz > .config
     make olddefconfig || die "make olddefconfig failed"
     echo "olddefconfig dubug message only"
@@ -218,6 +221,86 @@ key_file = "/efi/cryptroot_key.luks.gpg"
 EOF
 
     einfo "ugrd configuration deployed to $config_file"
+}
+
+function configure_kernel_cmdline() {
+    echo "Detecting kernel cmdline for Btrfs + LUKS + ugrd"
+    local CRYPTROOT_UUID="${CRYPTROOT_UUID:-${CHROOT_ROOT_UNDERLYING_UUID:-}}"
+    local ROOT_UUID="${CHROOT_ROOT_UNDERLYING_UUID:-}"
+    local SWAP_UUID="${CHROOT_SWAP_UNDERLYING_UUID:-}"
+
+    [[ -n "$CRYPTROOT_UUID" ]] || die "CRYPTROOT_UUID/CHROOT_ROOT_UNDERLYING_UUID is empty"
+
+    # Detect Btrfs root filesystem UUID from the currently mounted /
+    if [[ -z "$ROOT_UUID" ]]; then
+        local root_source
+
+        root_source=$(awk '$2 == "/" {print $1; exit}' /proc/mounts 2>/dev/null || true)
+
+        if [[ -n "$root_source" && -b "$root_source" ]]; then
+            ROOT_UUID=$(blkid -s UUID -o value "$root_source" 2>/dev/null || true)
+        fi
+
+        # Fallback
+        if [[ -z "$ROOT_UUID" ]]; then
+            ROOT_UUID=$(findmnt -no UUID / 2>/dev/null || true)
+        fi
+    fi
+
+    [[ -n "$ROOT_UUID" ]] || die "Could not detect Btrfs root UUID. Set ROOT_UUID manually."
+
+    # Detect Btrfs subvolume from mount options
+    local root_subvol=""
+    local root_opts
+
+    root_opts=$(awk '$2 == "/" {print $4; exit}' /proc/mounts 2>/dev/null || true)
+
+    if [[ -n "$root_opts" ]]; then
+        root_subvol=$(printf '%s\n' "$root_opts" \
+            | grep -o 'subvol=[^,]*' \
+            | head -n1 \
+            | cut -d= -f2- \
+            || true)
+
+        # Normalize /@ to @
+        root_subvol=${root_subvol#/}
+    fi
+
+    if [[ -z "$SWAP_UUID" ]]; then
+        if [[ -b /dev/mapper/cryptswap ]]; then
+            SWAP_UUID=$(blkid -s UUID -o value /dev/mapper/cryptswap 2>/dev/null || true)
+        elif command -v swapon >/dev/null 2>&1; then
+            SWAP_UUID=$(swapon --show=UUID --noheadings 2>/dev/null | head -n1 || true)
+        fi
+    fi
+
+    local resume_opt
+
+    if [[ -n "$SWAP_UUID" ]]; then
+        resume_opt="resume=UUID=${SWAP_UUID}"
+    else
+        ewarn "Could not detect decrypted swap UUID."
+        ewarn "Using resume=/dev/mapper/cryptswap instead."
+        ewarn "If you require resume=UUID=..., set SWAP_UUID to the UUID of /dev/mapper/cryptswap."
+        resume_opt="resume=/dev/mapper/cryptswap"
+    fi
+
+    local cmdline="root=UUID=${ROOT_UUID} rootflags=subvol=activeroot rd.luks.uuid=${CRYPTROOT_UUID} ro"
+
+    if [[ -n "$root_subvol" ]]; then
+        cmdline+=" rootflags=subvol=${root_subvol}"
+    fi
+
+    cmdline+=" ${resume_opt}"
+
+    printf '%s\n' "$cmdline" > /etc/kernel/cmdline
+    printf '%s\n' "$cmdline" > /etc/default/cmdline
+    printf '%s\n' "$cmdline" > /usr/lib/kernel/cmdline
+
+    einfo "Wrote /etc/kernel/cmdline:"
+    cat /etc/kernel/cmdline
+    cat /etc/default/cmdline
+    cat /usr/lib/kernel/cmdline
 }
 
 function enable_service() {

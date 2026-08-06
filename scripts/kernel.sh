@@ -7,7 +7,7 @@ function kernel_script() {
 	#   Motherboard : ASUS ROG X670E Gene
 	#   CPU         : AMD Ryzen 9 9950X
 	#   RAM         : 96GB
-	#   GPU         : ASUS RTX 3090 (proprietary NVIDIA driver, NO nouveau)
+	#   GPU         : ASUS RTX 3090 (nouveau)
 	#   Storage     : 1x NVMe + 3x SATA SSD
 	#
 	# Use-case:
@@ -138,25 +138,50 @@ function kernel_script() {
 	try ./scripts/config --enable CONFIG_PROC_FS || die "module do not exit CONFIG_PROC_FS"
 
 	# =============================================================================
-	# 10. Framebuffer Console (for GPG passphrase input in ugrd initramfs)
-	# NOTE: Using proprietary NVIDIA driver, so only EFI/simple framebuffer
-	#       is needed for early boot console. Nouveau is NOT enabled.
-	# WARNING: Since kernel 6.0, loading VFIO modules can freeze framebuffer
-	#          output until GPU drivers load. If vfio-pci grabs your RTX 3090
-	#          in initramfs, the console may freeze before you can type your
-	#          GPG passphrase. Either:
-	#            - Use a second GPU for host display
-	#            - Do NOT include vfio-pci in ugrd (load it later)
-	#            - Use serial console / SSH for unlocking
+	# 10. Framebuffer / DRM / Nouveau for RTX 3090
 	# =============================================================================
-	try ./scripts/config --enable CONFIG_FB_EFI || die "module do not exit CONFIG_FB_EFI"
-	try ./scripts/config --enable CONFIG_DRM || die "module do not exit CONFIG_DRM"
-	try ./scripts/config --module CONFIG_DRM_AMDGPU || die "Failed to set CONFIG_DRM_AMDGPU"
-	try ./scripts/config --enable CONFIG_DRM_SIMPLEDRM || die "module do not exit CONFIG_DRM_SIMPLEDRM"
-	try ./scripts/config --enable CONFIG_DRM_TTM_HELPER || die "module do not exit CONFIG_DRM_TTM_HELPER"
+	# Use nouveau, not the proprietary NVIDIA driver.
+	#
+	# For your ugrd + GPG LUKS setup, the early passphrase prompt can usually use
+	# EFI framebuffer / simpledrm. Nouveau can then load after the real root is
+	# available.
+	#
+	# Recommended: CONFIG_DRM_NOUVEAU=m
+	#
+	# If you specifically need nouveau active inside the initramfs, you can build
+	# it built-in with CONFIG_DRM_NOUVEAU=y, but then GPU firmware must also be
+	# available very early, either in the initramfs or through CONFIG_EXTRA_FIRMWARE.
+	# For an encrypted root, module mode is usually simpler.
+	# =============================================================================
+
+	# Early boot framebuffer/console support.
+	try ./scripts/config --enable CONFIG_FB || die "Failed to set CONFIG_FB"
+	try ./scripts/config --enable CONFIG_FB_EFI || die "Failed to set CONFIG_FB_EFI"
+	try ./scripts/config --enable CONFIG_DRM_SIMPLEDRM || die "Failed to set CONFIG_DRM_SIMPLEDRM"
+	try ./scripts/config --enable CONFIG_FRAMEBUFFER_CONSOLE || die "Failed to set CONFIG_FRAMEBUFFER_CONSOLE"
+	try ./scripts/config --enable CONFIG_FRAMEBUFFER_CONSOLE_DETECT_PRIMARY || die "Failed to set CONFIG_FRAMEBUFFER_CONSOLE_DETECT_PRIMARY"
+
+	# DRM core support.
+	try ./scripts/config --enable CONFIG_DRM || die "Failed to set CONFIG_DRM"
+	try ./scripts/config --enable CONFIG_DRM_KMS_HELPER || die "Failed to set CONFIG_DRM_KMS_HELPER"
 	try ./scripts/config --enable CONFIG_DRM_FBDEV_EMULATION || die "Failed to set CONFIG_DRM_FBDEV_EMULATION"
-	try ./scripts/config --enable CONFIG_FRAMEBUFFER_CONSOLE || die "module do not exit CONFIG_FRAMEBUFFER_CONSOLE"
-	try ./scripts/config --enable CONFIG_FRAMEBUFFER_CONSOLE_DETECT_PRIMARY || die "module do not exit CONFIG_FRAMEBUFFER_CONSOLE_DETECT_PRIMARY"
+
+	# DRM helpers used by nouveau.
+	try ./scripts/config --enable CONFIG_DRM_TTM || die "Failed to set CONFIG_DRM_TTM"
+	try ./scripts/config --enable CONFIG_DRM_TTM_HELPER || die "Failed to set CONFIG_DRM_TTM_HELPER"
+	try ./scripts/config --enable CONFIG_DRM_EXEC || die "Failed to set CONFIG_DRM_EXEC"
+	try ./scripts/config --enable CONFIG_DRM_SCHED || die "Failed to set CONFIG_DRM_SCHED"
+
+	# Nouveau driver.
+	#
+	# Recommended for your setup:
+	try ./scripts/config --module CONFIG_DRM_NOUVEAU || die "Failed to set CONFIG_DRM_NOUVEAU=m"
+
+	# Alternative, only if you need nouveau inside initramfs:
+	# try ./scripts/config --enable CONFIG_DRM_NOUVEAU || die "Failed to set CONFIG_DRM_NOUVEAU=y"
+
+	# Remove this line from your script; it is probably not a useful/current Kconfig symbol:
+	try ./scripts/config --enable CONFIG_NOUVEAU_DEBUG_DEFAULT
 
 	# =============================================================================
 	# 11. Console / TTY / VT
