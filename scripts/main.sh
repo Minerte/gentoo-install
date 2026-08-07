@@ -280,7 +280,7 @@ function configure_uefi_mkconfig_cmdline() {
     local default_file="/etc/default/uefi-mkconfig"
     local new_line
 
-    new_line=$(printf 'KERNEL_CONFIG="%%entry_id %%linux_name Linux %%kernel:version ; %s"' "$cmdline")
+    new_line=$(printf 'KERNEL_CONFIG="%%entry_id %%linux_name Linux %%kernel_version ; %s"' "$cmdline")
 
     if [[ -f "$default_file" ]]; then
         cp "$default_file" "${default_file}.bak" \
