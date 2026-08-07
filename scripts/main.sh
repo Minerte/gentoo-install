@@ -225,8 +225,8 @@ EOF
 
 function configure_kernel_cmdline() {
     echo "Detecting kernel cmdline for Btrfs + LUKS + ugrd"
-    local CRYPTROOT_UUID="${CRYPTROOT_UUID:-${CHROOT_ROOT_UNDERLYING_UUID:-}}"
-    local ROOT_UUID="${CHROOT_ROOT_UNDERLYING_UUID:-}"
+    local CRYPTROOT_UUID="${CHROOT_ROOT_UNDERLYING_UUID:-}"
+    local ROOT_UUID="${ROOT_UUID:-}"
     local SWAP_UUID="${CHROOT_SWAP_UNDERLYING_UUID:-}"
 
     [[ -n "$CRYPTROOT_UUID" ]] || die "CRYPTROOT_UUID/CHROOT_ROOT_UNDERLYING_UUID is empty"
@@ -285,22 +285,18 @@ function configure_kernel_cmdline() {
         resume_opt="resume=/dev/mapper/cryptswap"
     fi
 
-    local cmdline="root=UUID=${ROOT_UUID} rootflags=subvol=activeroot rd.luks.uuid=${CRYPTROOT_UUID} ro"
+    local cmdline="root=UUID=${ROOT_UUID} rd.luks.uuid=${CRYPTROOT_UUID}"
 
     if [[ -n "$root_subvol" ]]; then
-        cmdline+=" rootflags=subvol=${root_subvol}"
+        cmdline+=" rootflags=subvol=${root_subvol} ro"
     fi
 
     cmdline+=" ${resume_opt}"
 
-    printf '%s\n' "$cmdline" > /etc/kernel/cmdline
     printf '%s\n' "$cmdline" > /etc/default/cmdline
-    printf '%s\n' "$cmdline" > /usr/lib/kernel/cmdline
 
-    einfo "Wrote /etc/kernel/cmdline:"
-    cat /etc/kernel/cmdline
+    einfo "Wrote /etc/default/cmdline:"
     cat /etc/default/cmdline
-    cat /usr/lib/kernel/cmdline
 }
 
 function enable_service() {
