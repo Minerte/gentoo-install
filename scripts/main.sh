@@ -223,8 +223,8 @@ EOF
     einfo "ugrd configuration deployed to $config_file"
 }
 
-function configure_kernel_cmdline() {
-    echo "Writing kernel cmdline for Btrfs + LUKS + ugrd + hibernation"
+function configure_uefi_mkconfig_cmdline() {
+    echo "Configuring /etc/default/uefi-mkconfig"
 
     local ROOT_UUID="${ROOT_UUID:-${CHROOT_ROOT_UUID:-}}"
     local CRYPTROOT_UUID="${CRYPTROOT_UUID:-${CHROOT_ROOT_UNDERLYING_UUID:-}}"
@@ -242,7 +242,6 @@ function configure_kernel_cmdline() {
     [[ -n "$SWAP_UUID" ]] \
         || die "SWAP_UUID/CHROOT_SWAP_UUID is empty"
 
-    # Sanity checks: prevent mixing up LUKS UUIDs and filesystem UUIDs
     if [[ "$ROOT_UUID" == "$ROOT_LUKS_UUID" ]]; then
         die "root=UUID must use CHROOT_ROOT_UUID, not CHROOT_ROOT_UNDERLYING_UUID"
     fi
@@ -251,7 +250,7 @@ function configure_kernel_cmdline() {
         die "resume=UUID must use CHROOT_SWAP_UUID, not CHROOT_SWAP_UNDERLYING_UUID"
     fi
 
-    # Detect Btrfs subvolume; fallback to activeroot for your layout
+    # Detect Btrfs subvolume, fallback to activeroot
     local root_subvol="activeroot"
     local root_opts
     local detected_subvol
@@ -270,15 +269,45 @@ function configure_kernel_cmdline() {
         [[ -n "$detected_subvol" ]] && root_subvol="$detected_subvol"
     fi
 
-    printf 'root=UUID=%s rootflags=subvol=%s rd.luks.uuid=%s resume=UUID=%s ro\n' \
-        "$ROOT_UUID" \
-        "$root_subvol" \
-        "$CRYPTROOT_UUID" \
-        "$SWAP_UUID" \
-        > /etc/kernel/cmdline
+    local cmdline="root=UUID=${ROOT_UUID} rootflags=subvol=${root_subvol} rd.luks.uuid=${CRYPTROOT_UUID} ro resume=UUID=${SWAP_UUID}"
 
-    einfo "Wrote /etc/kernel/cmdline:"
-    cat /etc/kernel/cmdline
+    einfo "Target kernel cmdline:"
+    echo "$cmdline"
+
+    # Still useful for other tools
+    printf '%s\n' "$cmdline" > /etc/kernel/cmdline
+
+    local default_file="/etc/default/uefi-mkconfig"
+    local new_line
+
+    new_line=$(printf 'KERNEL_CONFIG="%%entry_id %%linux_name Linux %%kernel:version ; %s"' "$cmdline")
+
+    if [[ -f "$default_file" ]]; then
+        cp "$default_file" "${default_file}.bak" \
+            || ewarn "Could not back up $default_file"
+    fi
+
+    mkdir -p "$(dirname "$default_file")"
+
+    if [[ -f "$default_file" ]] && grep -q '^KERNEL_CONFIG=' "$default_file"; then
+        NEW_LINE="$new_line" awk '
+            /^KERNEL_CONFIG=/ {
+                print ENVIRON["NEW_LINE"]
+                next
+            }
+            { print }
+        ' "$default_file" > "${default_file}.tmp" \
+            || die "Could not rewrite $default_file"
+
+        mv "${default_file}.tmp" "$default_file" \
+            || die "Could not replace $default_file"
+    else
+        printf '%s\n' "$new_line" >> "$default_file" \
+            || die "Could not write $default_file"
+    fi
+
+    einfo "Updated $default_file:"
+    cat "$default_file"
 }
 
 function enable_service() {

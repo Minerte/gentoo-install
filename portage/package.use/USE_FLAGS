@@ -11,4 +11,5 @@ sys-auth/seatd builtin server
 media-video/pipewire sound-server pipewire-alsa
 
 # GPU drivers
+media-libs/libglvnd X
 sys-auth/pambase elogind
