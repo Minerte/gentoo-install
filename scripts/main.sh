@@ -224,79 +224,61 @@ EOF
 }
 
 function configure_kernel_cmdline() {
-    echo "Detecting kernel cmdline for Btrfs + LUKS + ugrd"
-    local CRYPTROOT_UUID="${CHROOT_ROOT_UNDERLYING_UUID:-}"
-    local ROOT_UUID="${ROOT_UUID:-}"
-    local SWAP_UUID="${CHROOT_SWAP_UNDERLYING_UUID:-}"
+    echo "Writing kernel cmdline for Btrfs + LUKS + ugrd + hibernation"
 
-    [[ -n "$CRYPTROOT_UUID" ]] || die "CRYPTROOT_UUID/CHROOT_ROOT_UNDERLYING_UUID is empty"
+    local ROOT_UUID="${ROOT_UUID:-${CHROOT_ROOT_UUID:-}}"
+    local CRYPTROOT_UUID="${CRYPTROOT_UUID:-${CHROOT_ROOT_UNDERLYING_UUID:-}}"
+    local SWAP_UUID="${SWAP_UUID:-${CHROOT_SWAP_UUID:-}}"
 
-    # Detect Btrfs root filesystem UUID from the currently mounted /
-    if [[ -z "$ROOT_UUID" ]]; then
-        local root_source
+    local ROOT_LUKS_UUID="${CHROOT_ROOT_UNDERLYING_UUID:-}"
+    local SWAP_LUKS_UUID="${CHROOT_SWAP_UNDERLYING_UUID:-}"
 
-        root_source=$(awk '$2 == "/" {print $1; exit}' /proc/mounts 2>/dev/null || true)
+    [[ -n "$ROOT_UUID" ]] \
+        || die "ROOT_UUID/CHROOT_ROOT_UUID is empty"
 
-        if [[ -n "$root_source" && -b "$root_source" ]]; then
-            ROOT_UUID=$(blkid -s UUID -o value "$root_source" 2>/dev/null || true)
-        fi
+    [[ -n "$CRYPTROOT_UUID" ]] \
+        || die "CRYPTROOT_UUID/CHROOT_ROOT_UNDERLYING_UUID is empty"
 
-        # Fallback
-        if [[ -z "$ROOT_UUID" ]]; then
-            ROOT_UUID=$(findmnt -no UUID / 2>/dev/null || true)
-        fi
+    [[ -n "$SWAP_UUID" ]] \
+        || die "SWAP_UUID/CHROOT_SWAP_UUID is empty"
+
+    # Sanity checks: prevent mixing up LUKS UUIDs and filesystem UUIDs
+    if [[ "$ROOT_UUID" == "$ROOT_LUKS_UUID" ]]; then
+        die "root=UUID must use CHROOT_ROOT_UUID, not CHROOT_ROOT_UNDERLYING_UUID"
     fi
 
-    [[ -n "$ROOT_UUID" ]] || die "Could not detect Btrfs root UUID. Set ROOT_UUID manually."
+    if [[ "$SWAP_UUID" == "$SWAP_LUKS_UUID" ]]; then
+        die "resume=UUID must use CHROOT_SWAP_UUID, not CHROOT_SWAP_UNDERLYING_UUID"
+    fi
 
-    # Detect Btrfs subvolume from mount options
-    local root_subvol=""
+    # Detect Btrfs subvolume; fallback to activeroot for your layout
+    local root_subvol="activeroot"
     local root_opts
+    local detected_subvol
 
     root_opts=$(awk '$2 == "/" {print $4; exit}' /proc/mounts 2>/dev/null || true)
 
     if [[ -n "$root_opts" ]]; then
-        root_subvol=$(printf '%s\n' "$root_opts" \
+        detected_subvol=$(printf '%s\n' "$root_opts" \
             | grep -o 'subvol=[^,]*' \
             | head -n1 \
             | cut -d= -f2- \
             || true)
 
-        # Normalize /@ to @
-        root_subvol=${root_subvol#/}
+        detected_subvol=${detected_subvol#/}
+
+        [[ -n "$detected_subvol" ]] && root_subvol="$detected_subvol"
     fi
 
-    if [[ -z "$SWAP_UUID" ]]; then
-        if [[ -b /dev/mapper/cryptswap ]]; then
-            SWAP_UUID=$(blkid -s UUID -o value /dev/mapper/cryptswap 2>/dev/null || true)
-        elif command -v swapon >/dev/null 2>&1; then
-            SWAP_UUID=$(swapon --show=UUID --noheadings 2>/dev/null | head -n1 || true)
-        fi
-    fi
+    printf 'root=UUID=%s rootflags=subvol=%s rd.luks.uuid=%s resume=UUID=%s ro\n' \
+        "$ROOT_UUID" \
+        "$root_subvol" \
+        "$CRYPTROOT_UUID" \
+        "$SWAP_UUID" \
+        > /etc/kernel/cmdline
 
-    local resume_opt
-
-    if [[ -n "$SWAP_UUID" ]]; then
-        resume_opt="resume=UUID=${SWAP_UUID}"
-    else
-        ewarn "Could not detect decrypted swap UUID."
-        ewarn "Using resume=/dev/mapper/cryptswap instead."
-        ewarn "If you require resume=UUID=..., set SWAP_UUID to the UUID of /dev/mapper/cryptswap."
-        resume_opt="resume=/dev/mapper/cryptswap"
-    fi
-
-    local cmdline="root=UUID=${ROOT_UUID} rd.luks.uuid=${CRYPTROOT_UUID}"
-
-    if [[ -n "$root_subvol" ]]; then
-        cmdline+=" rootflags=subvol=${root_subvol} ro"
-    fi
-
-    cmdline+=" ${resume_opt}"
-
-    printf '%s\n' "$cmdline" > /etc/default/cmdline
-
-    einfo "Wrote /etc/default/cmdline:"
-    cat /etc/default/cmdline
+    einfo "Wrote /etc/kernel/cmdline:"
+    cat /etc/kernel/cmdline
 }
 
 function enable_service() {
