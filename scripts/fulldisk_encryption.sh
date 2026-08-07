@@ -312,6 +312,9 @@ function config_portage() {
     sleep 3
     cp ~/gentoo-install/portage/env/* /mnt/gentoo/etc/portage/env \
         || die "Failed to copy env folder"
+	mkdir -p /mnt/gentoo/etc/portage/package.accept_keywords
+	cp ~/gentoo-install/portage/package.accept_keywords/* /mnt/gentoo/etc/portage/package.accept_keywords/ \
+		|| die "Failed to copy over package.accept_keywords"
     einfo "Successfully to copy over portage config to /mnt/gentoo/etc/portage"
 }
 
