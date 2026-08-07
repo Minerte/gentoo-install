@@ -88,7 +88,7 @@ function main_install_gentoo_in_chroot() {
 
     env_update
 
-    configure_kernel_cmdline
+    configure_uefi_mkconfig_cmdline
 
     generate_initramfs
 
@@ -224,7 +224,7 @@ EOF
 }
 
 function configure_uefi_mkconfig_cmdline() {
-    echo "Configuring /etc/default/uefi-mkconfig"
+    einfo "Configuring /etc/default/uefi-mkconfig"
 
     local ROOT_UUID="${ROOT_UUID:-${CHROOT_ROOT_UUID:-}}"
     local CRYPTROOT_UUID="${CRYPTROOT_UUID:-${CHROOT_ROOT_UNDERLYING_UUID:-}}"
