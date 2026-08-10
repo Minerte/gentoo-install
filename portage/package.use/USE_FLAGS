@@ -11,5 +11,14 @@ sys-auth/seatd builtin server
 media-video/pipewire sound-server pipewire-alsa
 
 # GPU drivers
+media-libs/freetype harfbuzz
 media-libs/libglvnd X
 sys-auth/pambase elogind
+
+# DWL
+gui-libs/wlroots-0.19 libinput
+
+# Firefox
+meida-libs/libvpx postproc
+x11-libs/cairo X
+x11-base/xorg-server xvfb
