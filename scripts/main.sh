@@ -159,7 +159,43 @@ function install_kernel() {
     einfo "bzImage to /efi/EFI/Gentoo/vmlinuz-$kver.efi copied successfully"
     sleep 5
 
+    # >>> USB PORTABILITY FIX <<<
+    # Copy to UEFI removable media fallback path so it boots without NVRAM entries
+    mkdir -p /efi/EFI/BOOT || die "Could not create /efi/EFI/BOOT"
+    cp "/efi/EFI/Gentoo/vmlinuz-${kver}.efi" /efi/EFI/BOOT/BOOTX64.EFI \
+        || die "Could not copy kernel to fallback BOOTX64.EFI"
+    einfo "Fallback bootloader installed at /efi/EFI/BOOT/BOOTX64.EFI"
+    # >>> END FIX <<<
+    sleep 5
+
     echo "Installing kernel (triggers installkernel hooks -> ugrd -> uefi-mkconfig)"
+    # >>> FUTURE-PROOF: Auto-update fallback on every kernel install <<<
+    einfo "Deploying kernel postinst hook for USB fallback"
+    mkdir -p /etc/kernel/postinst.d
+    cat > /etc/kernel/postinst.d/99-usb-fallback << 'EOF'
+#!/bin/bash
+# Automatically update the UEFI removable-media fallback bootloader
+# whenever installkernel updates the system kernel.
+KVER="$1"
+KERNEL_IMAGE="$2"
+
+# installkernel passes the image path as $2, but be defensive
+if [[ -z "$KERNEL_IMAGE" ]] || [[ ! -f "$KERNEL_IMAGE" ]]; then
+    KERNEL_IMAGE="/efi/EFI/Gentoo/vmlinuz-${KVER}.efi"
+    [[ -f "$KERNEL_IMAGE" ]] || KERNEL_IMAGE="/boot/vmlinuz-${KVER}"
+fi
+
+if [[ -f "$KERNEL_IMAGE" ]]; then
+    mkdir -p /efi/EFI/BOOT
+    cp -f "$KERNEL_IMAGE" /efi/EFI/BOOT/BOOTX64.EFI
+    echo "USB fallback updated: /efi/EFI/BOOT/BOOTX64.EFI ($KVER)"
+else
+    echo "Warning: kernel image not found for $KVER, fallback not updated" >&2
+fi
+EOF
+    chmod +x /etc/kernel/postinst.d/99-usb-fallback
+    einfo "Postinst hook installed at /etc/kernel/postinst.d/99-usb-fallback"
+    # >>> END FUTURE-PROOF <<<
     try make install || die "make install failed"
     sleep 10
 
