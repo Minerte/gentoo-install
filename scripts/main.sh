@@ -342,8 +342,6 @@ function configure_uefi_mkconfig_cmdline() {
             || die "Could not write $default_file"
     fi
 
-    echo 'NO_NVRAM="yes"' >> /etc/default/uefi-mkconfig
-
     einfo "Updated $default_file:"
     cat "$default_file"
 }
