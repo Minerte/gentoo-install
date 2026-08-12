@@ -94,18 +94,18 @@ function main_install_gentoo_in_chroot() {
 
     install_kernel
 
-    # echo "Emerging tools"
-    # try emerge --verbose sys-block/io-scheduler-udev-rules \
-    #     sys-apps/mlocate dev-vcs/git net-misc/networkmanager \
-    #     app-shells/bash-completion net-misc/chrony app-admin/sysklogd \
-    #     sys-process/cronie sys-auth/seatd
+    echo "Emerging tools"
+    try emerge --verbose sys-block/io-scheduler-udev-rules \
+        sys-apps/mlocate dev-vcs/git net-misc/networkmanager \
+        app-shells/bash-completion net-misc/chrony app-admin/sysklogd \
+        sys-process/cronie sys-auth/seatd
 
-    # enable_service
+    enable_service
 
     echo "Set root password"
     passwd
 
-    # try emerge --verbose x11-drivers/xf86-video-nouveau media-libs/mesa
+    try emerge --verbose x11-drivers/xf86-video-nouveau media-libs/mesa
 
     einfo "script completed"
 }
@@ -176,11 +176,12 @@ function install_kernel() {
 #!/bin/bash
 # Automatically update the UEFI removable-media fallback bootloader
 # whenever installkernel updates the system kernel.
+
 KVER="$1"
 KERNEL_IMAGE="$2"
 
 # installkernel passes the image path as $2, but be defensive
-if [[ -z "$KERNEL_IMAGE" ]] || [[ ! -f "$KERNEL_IMAGE" ]]; then
+if [[ -z "$KERNEL_IMAGE" || ! -f "$KERNEL_IMAGE" ]]; then
     KERNEL_IMAGE="/efi/EFI/Gentoo/vmlinuz-${KVER}.efi"
     [[ -f "$KERNEL_IMAGE" ]] || KERNEL_IMAGE="/boot/vmlinuz-${KVER}"
 fi
@@ -188,9 +189,9 @@ fi
 if [[ -f "$KERNEL_IMAGE" ]]; then
     mkdir -p /efi/EFI/BOOT
     cp -f "$KERNEL_IMAGE" /efi/EFI/BOOT/BOOTX64.EFI
-    echo "USB fallback updated: /efi/EFI/BOOT/BOOTX64.EFI ($KVER)"
+    echo "USB fallback updated: /efi/EFI/BOOT/BOOTX64.EFI (${KVER})"
 else
-    echo "Warning: kernel image not found for $KVER, fallback not updated" >&2
+    echo "Warning: kernel image not found for ${KVER}, fallback not updated" >&2
 fi
 EOF
     chmod +x /etc/kernel/postinst.d/99-usb-fallback

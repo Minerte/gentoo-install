@@ -6,7 +6,7 @@ sys-auth/seatd builtin server
 sys-auth/pambase elogind
 sys-apps/systemd-utils tmpfiles
 sys-libs/libsepol static-libs
-sec-policy/selinux-base-policy unconfined 
+sec-policy/selinux-base-policy unconfined
 
 # Piewire
 media-video/pipewire sound-server pipewire-alsa
@@ -33,7 +33,7 @@ app-alternatives/sh bash
 app-alternatives/bc gnu
 
 # links to app-alternatives/gpg
-app-crypt/gnupg alternatives ssl
+app-crypt/gnupg alternatives bzip2 tofu tools ssl smartcard usb user-socket 
 
 # Lua and neovim
 app-editors/neovim lua_single_target_luajit
