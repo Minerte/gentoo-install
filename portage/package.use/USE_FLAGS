@@ -1,24 +1,70 @@
 # Kernel
 sys-kernel/installkernel efistub ugrd
 
-# Network
-net-wireless/wpa_supplicant dbus
-
-# seatd
+# sys
 sys-auth/seatd builtin server
+sys-auth/pambase elogind
+sys-apps/systemd-utils tmpfiles
+sys-libs/libsepol static-libs
+# sec-policy/selinux-base-policy unconfined 
 
 # Piewire
 media-video/pipewire sound-server pipewire-alsa
 
-# GPU drivers
-media-libs/freetype harfbuzz
+# media-libs/*
+media-libs/freetype harfbuzz png
+media-libs/harfbuzz truetype glib
 media-libs/libglvnd X
-sys-auth/pambase elogind
+media-libs/libepoxy X
+media-libs/mesa X
+media-libs/libvpx postproc
+
+# app-alternatices/*
+app-alternatives/gpg reference ssl
+app-alternatives/ninja reference
+app-alternatives/bzip2 lbzip2
+app-alternatives/lex reflex
+app-alternatives/yacc bison
+app-alternatives/gzip pigz
+app-alternatives/cpio gnu
+app-alternatives/awk gawk
+app-alternatives/tar gnu
+app-alternatives/sh bash
+app-alternatives/bc gnu
+
+# links to app-alternatives/gpg
+app-crypt/gnupg alternatives ssl
+
+# Lua and neovim
+app-editors/neovim lua_single_target_luajit
+dev-lua/luv lua_single_target_luajit -lua_single_target_lua5-4
+dev-lua/mpack lua_targets_luajit lua_single_target_luajit
+dev-lua/lpeg lua_targets_luajit lua_single_target_luajit
+dev-lua/lua-cjson internal-fpconv
+
+# x11-*
+x11-libs/cairo X glib
+x11-base/xorg-server xorg xvfb
+
+# LLVM
+llvm-runtimes/compiler-rt-sanitizers asan ubsan
+llvm-runtimes/libclc spirv
+llvm-core/llvm binutils-plugin
 
 # DWL
-gui-libs/wlroots-0.19 libinput
+gui-libs/wlroots session libinput X
 
 # Firefox
-meida-libs/libvpx postproc
-x11-libs/cairo X
-x11-base/xorg-server xvfb
+www-client/firefox wayland jumbo-build llvm_slot_21
+
+# dev
+dev-cpp/eigen openmp boost
+dev-util/mesa_clc llvm_slot_22
+dev-lang/python ssl sqlite
+dev-libs/nettle gmp
+dev-libs/glib introspection
+
+# Networking packages
+net-misc/networkmanager nss iptables tools dhcpcd
+net-misc/curl ssl gnutls curl_ssl_gnutls
+net-misc/iputils arping
