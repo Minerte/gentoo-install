@@ -6,7 +6,7 @@ sys-auth/seatd builtin server
 sys-auth/pambase elogind
 sys-apps/systemd-utils tmpfiles
 sys-libs/libsepol static-libs
-# sec-policy/selinux-base-policy unconfined 
+sec-policy/selinux-base-policy unconfined 
 
 # Piewire
 media-video/pipewire sound-server pipewire-alsa
