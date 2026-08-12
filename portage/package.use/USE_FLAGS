@@ -66,5 +66,5 @@ dev-libs/glib introspection
 
 # Networking packages
 net-misc/networkmanager nss iptables tools dhcpcd
-net-misc/curl ssl gnutls curl_ssl_gnutls
+net-misc/curl ssl
 net-misc/iputils arping
