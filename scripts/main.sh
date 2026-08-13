@@ -81,18 +81,20 @@ function main_install_gentoo_in_chroot() {
     einfo "Re-emerge ALL system apps"
     try emerge --emptytree -1 @installed
 
+    env_update
+
     echo "merging filesystem"
     try emerge --verbose sys-fs/cryptsetup sys-fs/btrfs-progs \
         sys-fs/e2fsprogs sys-fs/dosfstools app-crypt/gnupg \
         app-arch/zstd
-
-    env_update
 
     configure_uefi_mkconfig_cmdline
 
     generate_initramfs
 
     install_kernel
+
+    env_update
 
     echo "Emerging tools"
     try emerge --verbose sys-block/io-scheduler-udev-rules \
@@ -102,11 +104,10 @@ function main_install_gentoo_in_chroot() {
 
     enable_service
 
-    echo "Set root password"
-    passwd
-
     try emerge --verbose x11-drivers/xf86-video-nouveau media-libs/mesa
 
+    echo "Set root password"
+    passwd
     einfo "script completed"
 }
 
@@ -159,17 +160,14 @@ function install_kernel() {
     einfo "bzImage to /efi/EFI/Gentoo/vmlinuz-$kver.efi copied successfully"
     sleep 5
 
-    # >>> USB PORTABILITY FIX <<<
     # Copy to UEFI removable media fallback path so it boots without NVRAM entries
     mkdir -p /efi/EFI/BOOT || die "Could not create /efi/EFI/BOOT"
     cp "/efi/EFI/Gentoo/vmlinuz-${kver}.efi" /efi/EFI/BOOT/BOOTX64.EFI \
         || die "Could not copy kernel to fallback BOOTX64.EFI"
-    einfo "Fallback bootloader installed at /efi/EFI/BOOT/BOOTX64.EFI"
-    # >>> END FIX <<<
+    einfo "Fallback bootloader installed at /efi/EFI/BOOT/BOOTX64.EFI"<
     sleep 5
 
     echo "Installing kernel (triggers installkernel hooks -> ugrd -> uefi-mkconfig)"
-    # >>> FUTURE-PROOF: Auto-update fallback on every kernel install <<<
     einfo "Deploying kernel postinst hook for USB fallback"
     mkdir -p /etc/kernel/postinst.d
     cat > /etc/kernel/postinst.d/99-usb-fallback << 'EOF'
@@ -196,7 +194,6 @@ fi
 EOF
     chmod +x /etc/kernel/postinst.d/99-usb-fallback
     einfo "Postinst hook installed at /etc/kernel/postinst.d/99-usb-fallback"
-    # >>> END FUTURE-PROOF <<<
     try make install || die "make install failed"
     sleep 10
 

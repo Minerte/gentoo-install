@@ -302,9 +302,6 @@ function config_portage() {
     einfo "Copying package.use folder to mnt/gentoo/etc/portage/package.use"
     cp ~/gentoo-install/portage/package.use/* /mnt/gentoo/etc/portage/package.use \
         || die "Failed to copy over package.use/*"
-    # einfo "Copying package.license folder to /mnt/gentoo/etc/portage/package.license"
-    # cp ~/gentoo-install/portage/package.license/* /mnt/gentoo/etc/portage/ \
-    #     || die "Failed to copy over package.license/*"
     cp ~/gentoo-install/portage/package.env /mnt/gentoo/etc/portage/ \
         || die "Failed to copy over package.env"
     einfo "creating folder for env"
