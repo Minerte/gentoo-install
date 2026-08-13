@@ -164,7 +164,7 @@ function install_kernel() {
     mkdir -p /efi/EFI/BOOT || die "Could not create /efi/EFI/BOOT"
     cp "/efi/EFI/Gentoo/vmlinuz-${kver}.efi" /efi/EFI/BOOT/BOOTX64.EFI \
         || die "Could not copy kernel to fallback BOOTX64.EFI"
-    einfo "Fallback bootloader installed at /efi/EFI/BOOT/BOOTX64.EFI"<
+    einfo "Fallback bootloader installed at /efi/EFI/BOOT/BOOTX64.EFI"
     sleep 5
 
     echo "Installing kernel (triggers installkernel hooks -> ugrd -> uefi-mkconfig)"
