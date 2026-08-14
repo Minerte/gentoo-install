@@ -442,9 +442,4 @@ function export_disk_uuids() {
     [[ -n "$CHROOT_SWAP_UUID" ]] || die "Failed to resolve swap UUID for /dev/mapper/$LUKS_SWAP_NAME"
 
     einfo "Disk UUIDs resolved successfully"
-    einfo "  EFI:           $CHROOT_EFI_UUID"
-    einfo "  Root LUKS:     $CHROOT_ROOT_UNDERLYING_UUID"
-    einfo "  Root BTRFS:    $CHROOT_ROOT_UUID"
-    einfo "  Swap LUKS:     $CHROOT_SWAP_UNDERLYING_UUID"
-    einfo "  Swap:          $CHROOT_SWAP_UUID"
 }

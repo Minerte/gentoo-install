@@ -88,6 +88,10 @@ function main_install_gentoo_in_chroot() {
         sys-fs/e2fsprogs sys-fs/dosfstools app-crypt/gnupg \
         app-arch/zstd
 
+    try emerge --verbose sys-boot/efibootmgr
+
+    env_update
+
     configure_uefi_mkconfig_cmdline
 
     generate_initramfs
@@ -107,20 +111,18 @@ function main_install_gentoo_in_chroot() {
     try emerge --verbose x11-drivers/xf86-video-nouveau media-libs/mesa
 
     echo "Set root password"
-    passwd
+    try passwd
     einfo "script completed"
 }
 
 function install_kernel() {
     echo "compile kernel"
     try emerge --oneshot --nodeps app-arch/cpio
-
-    # Install efibootmgr first so uefi-mkconfig can use it
-    try emerge --verbose sys-boot/efibootmgr
-    try emerge --verbose sys-kernel/installkernel sys-kernel/linux-firmware sys-firmware/nvidia-firmware
+    try emerge --verbose sys-kernel/installkernel sys-kernel/linux-firmware \
+        sys-firmware/nvidia-firmware sys-firmware/sof-firmware
 
     try emerge --verbose sys-kernel/gentoo-sources sys-apps/pciutils \
-        sys-firmware/sof-firmware app-portage/gentoolkit
+        app-portage/gentoolkit
 
     echo "Selecting kernel to set 1"
     try eselect kernel set 1 \
@@ -164,7 +166,7 @@ function install_kernel() {
     mkdir -p /efi/EFI/BOOT || die "Could not create /efi/EFI/BOOT"
     cp "/efi/EFI/Gentoo/vmlinuz-${kver}.efi" /efi/EFI/BOOT/BOOTX64.EFI \
         || die "Could not copy kernel to fallback BOOTX64.EFI"
-    einfo "Fallback bootloader installed at /efi/EFI/BOOT/BOOTX64.EFI"<
+    einfo "Fallback bootloader installed at /efi/EFI/BOOT/BOOTX64.EFI"
     sleep 5
 
     echo "Installing kernel (triggers installkernel hooks -> ugrd -> uefi-mkconfig)"
