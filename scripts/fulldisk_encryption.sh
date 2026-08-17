@@ -248,7 +248,7 @@ function config_system_outside_chroot() {
     if [[ -z "$ROOT_DEV" ]]; then
         die "No partition with LABEL=BTROOT found. Exiting..."
     fi
-    echo "Found BTROOT at $ROOT_DEV"
+    einfo "Found BTROOT at $ROOT_DEV"
 
     echo "Editing fstab"
     cat << EOF > /mnt/gentoo/etc/fstab || die "Failed to edit fstab with EOF"
@@ -269,28 +269,9 @@ EOF
     einfo "fstab set"
 
     echo "Copying DNS info to /mnt/gentoo/etc/"
-    cp --dereference /etc/resolv.conf /mnt/gentoo/etc/
-
-    einfo "setting up loclale.gen"
-    sed -i "s/#$LOCALE/$LOCALE/g" /mnt/gentoo/etc/locale.gen
+    try cp --dereference /etc/resolv.conf /mnt/gentoo/etc/
     # If dualboot uncomment below
     # sed -i "s/clock=\"UTC\"/clock=\"local\"/g" ./etc/conf.d/hwclock
-    einfo "Changing to keyboard laytout"
-    echo "keymap=\"$KEYMAP\"" > /mnt/gentoo/etc/conf.d/keymaps
-    einfo "Setting lang and lc_collate"
-    echo 'LANG="en_US.UTF-8"' >> /mnt/gentoo/etc/locale.conf
-    echo 'LC_COLLATE="C.UTF-8"' >> /mnt/gentoo/etc/locale.conf
-    einfo "Setting timezone"
-    echo "$TIMEZONE" > /mnt/gentoo/etc/timezone
-    einfo "Setting hostname to $HOSTNAME"
-    # Set hostname
-    echo "hostname=\"$HOSTNAME\"" > /mnt/gentoo/etc/conf.d/hostname
-    # Also update /etc/hosts with the hostname
-    cat >> /mnt/gentoo/etc/hosts << EOF
-127.0.0.1   $HOSTNAME localhost
-::1         $HOSTNAME localhost
-EOF
-
     einfo "Succesfully configure basic system"
 }
 

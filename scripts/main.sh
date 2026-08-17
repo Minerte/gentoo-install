@@ -43,6 +43,12 @@ function install_stage3() {
 function main_install_gentoo_in_chroot() {
     echo "we are in chroot"
 
+    # Remove the root password, making the account accessible for automated
+	# tasks during the period of installation.
+	einfo "Clearing root password"
+	passwd -d root \
+		|| die "Could not change root password"
+
     echo "mounting $EFI_PART to /efi"
     if ! mountpoint -q /efi; then
         mount /dev/disk/by-uuid/"$CHROOT_EFI_UUID" /efi || die "Could not mount EFI by UUID"
@@ -56,15 +62,15 @@ function main_install_gentoo_in_chroot() {
     fi
 
     # FIX: Ensure /efi is mounted on boot (GPG keys live here)
+    einfo "Adding EFI UUID TO SWAP"
     if ! grep -q "/efi" /etc/fstab; then
-        echo "UUID=$CHROOT_EFI_UUID    /efi    vfat   defaults,noatime                                    0 2" >> /etc/fstab
+        echo "UUID=$CHROOT_EFI_UUID    /efi    vfat   defaults,noatime                                       0 2" >> /etc/fstab
     fi
 
     echo "Syncing to DB"
     try emerge --sync --quiet
 
-    echo "Configure timezone"
-    try emerge -v --config sys-libs/timezone-data
+    configure_system
 
     einfo "Adding cpuflags"
     try emerge --oneshot app-portage/cpuid2cpuflags
@@ -86,15 +92,13 @@ function main_install_gentoo_in_chroot() {
     echo "merging filesystem"
     try emerge --verbose sys-fs/cryptsetup sys-fs/btrfs-progs \
         sys-fs/e2fsprogs sys-fs/dosfstools app-crypt/gnupg \
-        app-arch/zstd
-
-    try emerge --verbose sys-boot/efibootmgr
+        app-arch/zstd sys-boot/efibootmgr
 
     env_update
 
-    configure_uefi_mkconfig_cmdline
-
     generate_initramfs
+
+    configure_uefi_mkconfig_cmdline
 
     install_kernel
 
@@ -113,6 +117,43 @@ function main_install_gentoo_in_chroot() {
     echo "Set root password"
     try passwd
     einfo "script completed"
+}
+
+function configure_system() {
+    einfo "Generating locales"
+	echo "$LOCALES" > /etc/locale.gen \
+	    || die "Could not write /etc/locale.gen"
+	locale-gen \
+	    || die "Could not generate locales"
+
+    # Set hostname
+	einfo "Selecting hostname"
+	sed -i "/hostname=/c\\hostname=\"$HOSTNAME\"" /etc/conf.d/hostname \
+		|| die "Could not sed replace in /etc/conf.d/hostname"
+    
+    # Also update /etc/hosts with the hostname
+    cat >> /mnt/gentoo/etc/hosts << EOF
+127.0.0.1   $HOSTNAME localhost
+::1         $HOSTNAME localhost
+EOF
+
+    einfo "Selecting timezone"
+	echo "$TIMEZONE" > /etc/timezone \
+		|| die "Could not write /etc/timezone"
+	chmod 644 /etc/timezone \
+		|| die "Could not set correct permissions for /etc/timezone"
+	try emerge -v --config sys-libs/timezone-data
+
+    # Set keymap
+	einfo "Selecting keymap"
+	sed -i "/keymap=/c\\keymap=\"$KEYMAP\"" /etc/conf.d/keymaps \
+		|| die "Could not sed replace in /etc/conf.d/keymaps"
+
+	# Set locale
+	einfo "Selecting locale"
+	try eselect locale set "$LOCALE"
+
+    env_update
 }
 
 function install_kernel() {
@@ -238,12 +279,11 @@ modules = [
 keymap_file = "/usr/share/keymaps/i386/qwerty/sv-latin1.map.gz"
 late_resume = true
 
-# Changed from /boot to /efi to match your fstab and disk layout
 auto_mounts = ['/efi']
 
-[mounts.efi]
-path = '/efi'
-uuid = "$efi_uuid"
+# [mounts.efi]
+# path = '/efi'
+# uuid = "$efi_uuid"
 
 [cryptsetup.cryptswap]
 uuid = "$swap_uuid"
@@ -264,7 +304,7 @@ function configure_uefi_mkconfig_cmdline() {
 
     local ROOT_UUID="${ROOT_UUID:-${CHROOT_ROOT_UUID:-}}"
     local CRYPTROOT_UUID="${CRYPTROOT_UUID:-${CHROOT_ROOT_UNDERLYING_UUID:-}}"
-    local SWAP_UUID="${SWAP_UUID:-${CHROOT_SWAP_UUID:-}}"
+    local SWAP_UUID="${CHROOT_SWAP_UNDERLYING_UUID:-}"
 
     local ROOT_LUKS_UUID="${CHROOT_ROOT_UNDERLYING_UUID:-}"
     local SWAP_LUKS_UUID="${CHROOT_SWAP_UNDERLYING_UUID:-}"
