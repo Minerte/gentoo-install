@@ -304,10 +304,8 @@ function configure_uefi_mkconfig_cmdline() {
 
     local ROOT_UUID="${ROOT_UUID:-${CHROOT_ROOT_UUID:-}}"
     local CRYPTROOT_UUID="${CRYPTROOT_UUID:-${CHROOT_ROOT_UNDERLYING_UUID:-}}"
-    local SWAP_UUID="${CHROOT_SWAP_UNDERLYING_UUID:-}"
-
+    local SWAP_UUID="${SWAP_UUID:-${CHROOT_SWAP_UNDERLYING_UUID:-}}"
     local ROOT_LUKS_UUID="${CHROOT_ROOT_UNDERLYING_UUID:-}"
-    local SWAP_LUKS_UUID="${CHROOT_SWAP_UNDERLYING_UUID:-}"
 
     [[ -n "$ROOT_UUID" ]] \
         || die "ROOT_UUID/CHROOT_ROOT_UUID is empty"
@@ -316,14 +314,10 @@ function configure_uefi_mkconfig_cmdline() {
         || die "CRYPTROOT_UUID/CHROOT_ROOT_UNDERLYING_UUID is empty"
 
     [[ -n "$SWAP_UUID" ]] \
-        || die "SWAP_UUID/CHROOT_SWAP_UUID is empty"
+        || die "SWAP_UUID/CHROOT_SWAP_UNDERLYING_UUID is empty"
 
     if [[ "$ROOT_UUID" == "$ROOT_LUKS_UUID" ]]; then
         die "root=UUID must use CHROOT_ROOT_UUID, not CHROOT_ROOT_UNDERLYING_UUID"
-    fi
-
-    if [[ "$SWAP_UUID" == "$SWAP_LUKS_UUID" ]]; then
-        die "resume=UUID must use CHROOT_SWAP_UUID, not CHROOT_SWAP_UNDERLYING_UUID"
     fi
 
     # Detect Btrfs subvolume, fallback to activeroot
