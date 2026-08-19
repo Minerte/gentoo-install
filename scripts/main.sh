@@ -92,7 +92,7 @@ function main_install_gentoo_in_chroot() {
     echo "merging filesystem"
     try emerge --verbose sys-fs/cryptsetup sys-fs/btrfs-progs \
         sys-fs/e2fsprogs sys-fs/dosfstools app-crypt/gnupg \
-        app-arch/zstd sys-boot/efibootmgr
+        app-arch/zstd sys-boot/efibootmgr sys-apps/util-linux
 
     env_update
 
@@ -130,7 +130,7 @@ function configure_system() {
 	einfo "Selecting hostname"
 	sed -i "/hostname=/c\\hostname=\"$HOSTNAME\"" /etc/conf.d/hostname \
 		|| die "Could not sed replace in /etc/conf.d/hostname"
-    
+
     # Also update /etc/hosts with the hostname
     cat >> /mnt/gentoo/etc/hosts << EOF
 127.0.0.1   $HOSTNAME localhost
@@ -270,6 +270,7 @@ modules = [
     "ugrd.base.console",
     "ugrd.base.keymap",
     "ugrd.kmod.usb",
+    "ugrd.kmod.nvme",
     "ugrd.crypto.cryptsetup",
     "ugrd.crypto.gpg",
     "ugrd.fs.btrfs",
@@ -281,13 +282,7 @@ late_resume = true
 
 mount_timeout = 5
 
-# auto_mounts = ['/efi']
-
-[mounts.efi]
-path = '/efi'
-uuid = "$efi_uuid"
-type = "vfat"
-options = "defaults,noatime
+auto_mounts = ['/efi']
 
 [cryptsetup.cryptswap]
 uuid = "$swap_uuid"

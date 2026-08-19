@@ -531,6 +531,12 @@ function kernel_script() {
 	try ./scripts/config --enable CONFIG_SLUB_CPU_PARTIAL || die "module do not exit CONFIG_SLUB_CPU_PARTIAL"
 
 	# =============================================================================
+	# Devtmpfs (required for /dev/disk/by-uuid/ in initramfs)
+	# =============================================================================
+	try ./scripts/config --enable CONFIG_DEVTMPFS || die "Failed to set CONFIG_DEVTMPFS"
+	try ./scripts/config --enable CONFIG_DEVTMPFS_MOUNT || die "Failed to set CONFIG_DEVTMPFS_MOUNT"
+	
+	# =============================================================================
 	# END OF CONFIGURATION
 	# =============================================================================
 	# Post-build notes:
