@@ -104,15 +104,15 @@ function main_install_gentoo_in_chroot() {
 
     env_update
 
-    echo "Emerging tools"
-    try emerge --verbose sys-block/io-scheduler-udev-rules \
-        sys-apps/mlocate dev-vcs/git net-misc/networkmanager \
-        app-shells/bash-completion net-misc/chrony app-admin/sysklogd \
-        sys-process/cronie sys-auth/seatd
+    # echo "Emerging tools"
+    # try emerge --verbose sys-block/io-scheduler-udev-rules \
+    #     sys-apps/mlocate dev-vcs/git net-misc/networkmanager \
+    #     app-shells/bash-completion net-misc/chrony app-admin/sysklogd \
+    #     sys-process/cronie sys-auth/seatd
 
-    enable_service
+    # enable_service
 
-    try emerge --verbose x11-drivers/xf86-video-nouveau media-libs/mesa
+    # try emerge --verbose x11-drivers/xf86-video-nouveau media-libs/mesa
 
     echo "Set root password"
     try passwd
@@ -279,11 +279,15 @@ modules = [
 keymap_file = "/usr/share/keymaps/i386/qwerty/sv-latin1.map.gz"
 late_resume = true
 
-auto_mounts = ['/efi']
+mount_timeout = 5
 
-# [mounts.efi]
-# path = '/efi'
-# uuid = "$efi_uuid"
+# auto_mounts = ['/efi']
+
+[mounts.efi]
+path = '/efi'
+uuid = "$efi_uuid"
+type = "vfat"
+options = "defaults,noatime
 
 [cryptsetup.cryptswap]
 uuid = "$swap_uuid"

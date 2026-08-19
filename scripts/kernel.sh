@@ -120,6 +120,10 @@ function kernel_script() {
 	try ./scripts/config --enable CONFIG_SATA_AHCI_PLATFORM || die "module do not exit CONFIG_SATA_AHCI_PLATFORM"
 	try ./scripts/config --enable CONFIG_SCSI || die "module do not exit CONFIG_SCSI"
 	try ./scripts/config --enable CONFIG_BLK_DEV_SD || die "module do not exit CONFIG_BLK_DEV_SD"
+	# Additional storage controllers for AMD X670E
+	try ./scripts/config --enable CONFIG_SATA_HIGHBANK || die "module do not exit CONFIG_SATA_HIGHBANK"
+	try ./scripts/config --enable CONFIG_SATA_ACARD_AHCI || die "module do not exit CONFIG_SATA_ACARD_AHCI"
+	try ./scripts/config --enable CONFIG_PATA_AMD || die "module do not exit CONFIG_PATA_AMD"
 
 	# =============================================================================
 	# 8. DAX (Direct Access) support
@@ -175,10 +179,10 @@ function kernel_script() {
 	# Nouveau driver.
 	#
 	# Recommended for your setup:
-	try ./scripts/config --module CONFIG_DRM_NOUVEAU || die "Failed to set CONFIG_DRM_NOUVEAU=m"
+	# try ./scripts/config --module CONFIG_DRM_NOUVEAU || die "Failed to set CONFIG_DRM_NOUVEAU=m"
 
 	# Alternative, only if you need nouveau inside initramfs:
-	# try ./scripts/config --enable CONFIG_DRM_NOUVEAU || die "Failed to set CONFIG_DRM_NOUVEAU=y"
+	try ./scripts/config --enable CONFIG_DRM_NOUVEAU || die "Failed to set CONFIG_DRM_NOUVEAU=y"
 
 	# Remove this line from your script; it is probably not a useful/current Kconfig symbol:
 	try ./scripts/config --enable CONFIG_NOUVEAU_DEBUG_DEFAULT
