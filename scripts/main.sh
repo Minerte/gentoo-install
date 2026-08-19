@@ -132,7 +132,7 @@ function configure_system() {
 		|| die "Could not sed replace in /etc/conf.d/hostname"
 
     # Also update /etc/hosts with the hostname
-    cat >> /mnt/gentoo/etc/hosts << EOF
+    cat >> /etc/hosts << EOF
 127.0.0.1   $HOSTNAME localhost
 ::1         $HOSTNAME localhost
 EOF
@@ -284,6 +284,10 @@ mount_timeout = 5
 
 auto_mounts = ['/efi']
 
+[mounts.efi]
+uuid = "$efi_uuid"
+type = "vfat"
+
 [cryptsetup.cryptswap]
 uuid = "$swap_uuid"
 key_type = "gpg"
@@ -338,7 +342,7 @@ function configure_uefi_mkconfig_cmdline() {
         [[ -n "$detected_subvol" ]] && root_subvol="$detected_subvol"
     fi
 
-    local cmdline="root=UUID=${ROOT_UUID} rootflags=subvol=${root_subvol} rd.luks.uuid=${CRYPTROOT_UUID} ro resume=UUID=${SWAP_UUID}"
+    local cmdline="root=UUID=${ROOT_UUID} rootflags=subvol=${root_subvol} rd.luks.uuid=${CRYPTROOT_UUID} resume=UUID=${SWAP_UUID} ro"
 
     einfo "Target kernel cmdline:"
     echo "$cmdline"

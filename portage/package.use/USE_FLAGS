@@ -10,14 +10,18 @@ sys-libs/libsepol static-libs
 sec-policy/selinux-base-policy unconfined
 
 # Piewire
-media-video/pipewire sound-server pipewire-alsa
+# Add bluetooth only if you actually have/use BT audio devices - otherwise
+# it's a needless dependency chain.
+media-video/pipewire sound-server pipewire-alsa bluetooth
 
 # media-libs/*
 media-libs/freetype harfbuzz png
 media-libs/harfbuzz truetype glib
 media-libs/libglvnd X
 media-libs/libepoxy X
-media-libs/mesa X
+# vulkan: needed for the nvk Vulkan driver (VIDEO_CARDS="nouveau nvk") and Steam/Proton
+# wayland+gbm: needed for DWL/wlroots to get a working EGL/KMS render path
+media-libs/mesa X vulkan wayland gbm
 media-libs/libvpx postproc
 
 # app-alternatices/*
@@ -54,9 +58,16 @@ llvm-core/llvm binutils-plugin
 
 # DWL
 gui-libs/wlroots session libinput X
+# dwl itself lives at gui-wm/dwl, not gui-apps/dwl. "seatd" and "X" (XWayland)
+# are real flags on the ebuild.
+# gui-wm/dwl X seatd
+x11-base/xwayland
 
 # Firefox
-www-client/firefox wayland jumbo-build llvm_slot_21
+# hwaccel: pulls in vaapitest/pciutils for HW video-decode self-test and correct
+# about:config defaults. There's no separate "vaapi"/"ffmpeg" USE flag - those
+# were wrong; VA-API support rides on hwaccel + your video driver.
+www-client/firefox wayland jumbo-build llvm_slot_21 hwaccel openh264
 
 # dev
 dev-cpp/eigen openmp boost
@@ -69,3 +80,48 @@ dev-libs/glib introspection
 net-misc/networkmanager nss iptables tools dhcpcd
 net-misc/curl ssl
 net-misc/iputils arping
+
+# QEMU / KVM / virt-manager
+# "opengl" isn't a real qemu flag - the one that actually gives you GPU-
+# accelerated virtio-gpu display is "virgl". qemu_user_targets_x86_64 is for
+# running foreign x86_64 binaries via binfmt on a non-x86_64 host - not
+# relevant here, so it's dropped. libvirt was missing entirely; virt-manager
+# needs it, and virt-manager's own flags are just gui+policykit (spice/gtk
+# were never valid on virt-manager - spice/usbredir belong on qemu itself).
+app-emulation/qemu spice usbredir virtfs virgl sdl gtk vnc pipewire alsa qemu_softmmu_targets_x86_64
+app-emulation/libvirt qemu libvirtd virt-network fuse nfs numa udev policykit
+app-emulation/virt-manager gui policykit
+
+# CAD / EDA
+# Flag names drift between versions - run `equery uses <package>` before
+# emerging and adjust; these are the commonly-relevant ones as of the
+# current tree.
+# KiCad: opengl/python/ngspice aren't real IUSE on this package - it has no
+# per-flag OpenGL/python toggle, and spice sim is built-in. wayland/nls/
+# openmp are real and worth having.
+sci-electronics/kicad wayland nls openmp
+# FreeCAD actually lives at media-gfx/freecad, not sci-mechanics/freecad.
+media-gfx/freecad gui fem mesh openscad techdraw qt6 X
+
+# STM32 / Arduino development
+dev-embedded/openocd libusb libftdi ftdi
+dev-embedded/stlink usb
+dev-embedded/avrdude usb
+dev-embedded/platformio
+dev-embedded/arduino
+
+# Steam / gaming
+# steam-launcher and steam-client are NOT in the main Gentoo tree - they
+# come from the third-party steam-overlay repo, added via eselect-repository.
+# video_cards_nvidia is wrong for you (that's the proprietary driver flag;
+# you're on nouveau/nvk). Real flags below; also see the Gentoo Steam wiki
+# page for the list of *other* packages that need abi_x86_32 added
+# individually in /etc/portage/package.use/steam - ABI_X86="32 64" in
+# make.conf alone does not cover all of them.
+games-util/steam-launcher joystick pulseaudio steamruntime udev vulkan wayland
+games-util/steam-client joystick pulseaudio steamruntime udev vulkan wayland
+
+# Qt6 (pulled in by FreeCAD/KiCad's GUI) - flag names below are typical for
+# dev-qt packages but verify with `equery uses` since they vary per Qt module.
+dev-qt/qtbase X gui network opengl sql widgets xml
+dev-qt/qtwayland compositor

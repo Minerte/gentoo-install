@@ -5,17 +5,20 @@ function kernel_script() {
 	# =============================================================================
 	# Hardware:
 	#   Motherboard : ASUS ROG X670E Gene
-	#   CPU         : AMD Ryzen 9 9950X
-	#   RAM         : 96GB
-	#   GPU         : ASUS RTX 3090 (nouveau)
-	#   Storage     : 1x NVMe + 3x SATA SSD
+	#   CPU         : AMD Ryzen 9 9950X (overclocked)
+	#   RAM         : 96GB CMH96GX5M2B6000C30 (overclocked)
+	#   GPU         : RTX 3090, currently primary display via nouveau/nvk
+	#   Storage     : NVMe + SSD + USB (EFI/ESP lives on a separate USB)
 	#
 	# Use-case:
 	#   - BTRFS root filesystem
-	#   - Separate /efi partition
+	#   - Separate /efi partition on USB, fully encrypted root disk
 	#   - ugrd initramfs with GPG-encrypted LUKS key
-	#   - KVM/QEMU virtualization (many VMs)
-	#   - VFIO GPU passthrough
+	#   - DWL (wlroots Wayland compositor) + Firefox (Wayland)
+	#   - KVM/QEMU (Windows 11 guest today, future VFIO passthrough of the 3090)
+	#   - FreeCAD / KiCad
+	#   - Gaming via Steam
+	#   - STM32 + Arduino development over USB
 	#   - Kernel version: 6.18.41 (gentoo-sources)
 	# =============================================================================
 
@@ -167,6 +170,7 @@ function kernel_script() {
 
 	# DRM core support.
 	try ./scripts/config --enable CONFIG_DRM || die "Failed to set CONFIG_DRM"
+	try ./scripts/config --enable CONFIG_DRM_ATOMIC || die "Failed to set CONFIG_DRM_ATOMIC"
 	try ./scripts/config --enable CONFIG_DRM_KMS_HELPER || die "Failed to set CONFIG_DRM_KMS_HELPER"
 	try ./scripts/config --enable CONFIG_DRM_FBDEV_EMULATION || die "Failed to set CONFIG_DRM_FBDEV_EMULATION"
 
@@ -178,14 +182,13 @@ function kernel_script() {
 
 	# Nouveau driver.
 	#
-	# Recommended for your setup:
-	# try ./scripts/config --module CONFIG_DRM_NOUVEAU || die "Failed to set CONFIG_DRM_NOUVEAU=m"
-
-	# Alternative, only if you need nouveau inside initramfs:
+	# IMPORTANT: build as a MODULE, not built-in. You plan to VFIO-passthrough
+	# this exact RTX 3090 to a Windows 11 VM later. A built-in (=y) driver can
+	# never be unbound from the card at runtime, which permanently blocks
+	# passthrough. As a module you can rmmod it and bind vfio-pci on demand.
+	# Your ugrd early console already runs on simpledrm/EFI framebuffer, so
+	# nouveau does not need to be present in the initramfs.
 	try ./scripts/config --enable CONFIG_DRM_NOUVEAU || die "Failed to set CONFIG_DRM_NOUVEAU=y"
-
-	# Remove this line from your script; it is probably not a useful/current Kconfig symbol:
-	try ./scripts/config --enable CONFIG_NOUVEAU_DEBUG_DEFAULT
 
 	# =============================================================================
 	# 11. Console / TTY / VT
@@ -246,6 +249,13 @@ function kernel_script() {
 	# CPU temperature monitoring
 	try ./scripts/config --enable CONFIG_SENSORS_K10TEMP || die "module do not exit CONFIG_SENSORS_K10TEMP"
 
+	# Board sensors (fans, VRM/board temps) - X670E Gene exposes these via
+	# Super I/O and ASUS's WMI/EC interfaces, not K10TEMP.
+	try ./scripts/config --enable CONFIG_HWMON || die "module do not exit CONFIG_HWMON"
+	try ./scripts/config --module CONFIG_SENSORS_NCT6775 || die "module do not exit CONFIG_SENSORS_NCT6775"
+	try ./scripts/config --module CONFIG_SENSORS_ASUS_WMI || die "module do not exit CONFIG_SENSORS_ASUS_WMI"
+	try ./scripts/config --module CONFIG_SENSORS_ASUS_EC || die "module do not exit CONFIG_SENSORS_ASUS_EC"
+
 	# IOMMU (critical for X670E chipset and VFIO passthrough)
 	try ./scripts/config --enable CONFIG_AMD_IOMMU || die "module do not exit CONFIG_AMD_IOMMU"
 	try ./scripts/config --enable CONFIG_AMD_IOMMU_V2 || die "module do not exit CONFIG_AMD_IOMMU_V2"
@@ -267,6 +277,18 @@ function kernel_script() {
 	try ./scripts/config --enable CONFIG_SND || die "module do not exit CONFIG_SND"
 	try ./scripts/config --enable CONFIG_SND_PROC_FS || die "module do not exit CONFIG_SND_PROC_FS"
 	try ./scripts/config --enable CONFIG_SND_VERBOSE_PROCFS || die "module do not exit CONFIG_SND_VERBOSE_PROCFS"
+
+	# Actual hardware drivers. Core SND alone produces no audio device.
+	# X670E Gene onboard audio is HD-Audio (Realtek codec); also enable USB
+	# audio for any USB DAC/headset/interface, and HDMI audio in case you
+	# ever route sound through a GPU's HDMI/DP output.
+	try ./scripts/config --module CONFIG_SND_HDA_INTEL || die "module do not exit CONFIG_SND_HDA_INTEL"
+	try ./scripts/config --enable CONFIG_SND_HDA_CODEC_REALTEK || die "module do not exit CONFIG_SND_HDA_CODEC_REALTEK"
+	try ./scripts/config --enable CONFIG_SND_HDA_CODEC_HDMI || die "module do not exit CONFIG_SND_HDA_CODEC_HDMI"
+	try ./scripts/config --enable CONFIG_SND_HDA_INPUT_BEEP || die "module do not exit CONFIG_SND_HDA_INPUT_BEEP"
+	try ./scripts/config --module CONFIG_SND_USB_AUDIO || die "module do not exit CONFIG_SND_USB_AUDIO"
+	# Verify the exact HD-Audio codec after boot with: cat /proc/asound/card0/codec#0
+	# and adjust CONFIG_SND_HDA_CODEC_* if it's not Realtek.
 
 	# =============================================================================
 	# 18. KVM / QEMU Virtualization (many VMs)
@@ -322,6 +344,59 @@ function kernel_script() {
 
 	# PCI stub driver (for manually binding devices before vfio-pci)
 	try ./scripts/config --enable CONFIG_PCI_STUB || die "module do not exit CONFIG_PCI_STUB"
+
+	# =============================================================================
+	# 19b. Host Networking Hardware (NIC + WiFi)
+	# =============================================================================
+	# Nothing below is passthrough-related - this is what gets your HOST online.
+	# X670E Gene boards typically ship a Realtek RTL8125 2.5GbE controller
+	# (sometimes an Intel I225-V) plus a MediaTek MT7922/MT7921 WiFi 6E +
+	# Bluetooth combo. Confirm your exact chips with `lspci -nn | grep -iE
+	# "ethernet|network"` before relying on this list, and drop whichever
+	# driver doesn't match.
+	try ./scripts/config --module CONFIG_R8169 || die "module do not exit CONFIG_R8169"
+	try ./scripts/config --module CONFIG_IGC || die "module do not exit CONFIG_IGC"
+	try ./scripts/config --enable CONFIG_WLAN || die "module do not exit CONFIG_WLAN"
+	try ./scripts/config --enable CONFIG_CFG80211 || die "module do not exit CONFIG_CFG80211"
+	try ./scripts/config --enable CONFIG_MAC80211 || die "module do not exit CONFIG_MAC80211"
+	try ./scripts/config --module CONFIG_MT7921E || die "module do not exit CONFIG_MT7921E"
+	try ./scripts/config --enable CONFIG_BT || die "module do not exit CONFIG_BT"
+	try ./scripts/config --module CONFIG_BT_HCIBTUSB || die "module do not exit CONFIG_BT_HCIBTUSB"
+
+	# =============================================================================
+	# 19c. USB Serial / CDC-ACM (STM32 + Arduino development)
+	# =============================================================================
+	# ST-Link's virtual COM port and Arduino boards with an ATmega16u2 both
+	# enumerate as CDC-ACM. Clone boards and many ESP32/other dev boards use
+	# FTDI, CP210x, or CH34x USB-serial bridges instead - enabling all of
+	# them costs nothing and saves guessing later.
+	try ./scripts/config --module CONFIG_USB_ACM || die "module do not exit CONFIG_USB_ACM"
+	try ./scripts/config --enable CONFIG_USB_SERIAL || die "module do not exit CONFIG_USB_SERIAL"
+	try ./scripts/config --module CONFIG_USB_SERIAL_FTDI_SIO || die "module do not exit CONFIG_USB_SERIAL_FTDI_SIO"
+	try ./scripts/config --module CONFIG_USB_SERIAL_CP210X || die "module do not exit CONFIG_USB_SERIAL_CP210X"
+	try ./scripts/config --module CONFIG_USB_SERIAL_CH341 || die "module do not exit CONFIG_USB_SERIAL_CH341"
+	try ./scripts/config --module CONFIG_USB_SERIAL_PL2303 || die "module do not exit CONFIG_USB_SERIAL_PL2303"
+	try ./scripts/config --enable CONFIG_HIDRAW || die "module do not exit CONFIG_HIDRAW"
+
+	# =============================================================================
+	# 19d. Gaming (Steam / Proton) + Wayland input helpers
+	# =============================================================================
+	# Steam and most of its Proton runtime are still 32-bit or need 32-bit
+	# libs; without IA32 emulation the client plus a large slice of your
+	# library simply won't run. CONFIG_COMPAT is normally auto-selected by
+	# CONFIG_IA32_EMULATION but is listed explicitly for clarity.
+	try ./scripts/config --enable CONFIG_IA32_EMULATION || die "module do not exit CONFIG_IA32_EMULATION"
+	try ./scripts/config --enable CONFIG_COMPAT || die "module do not exit CONFIG_COMPAT"
+	try ./scripts/config --enable CONFIG_COMPAT_32BIT_TIME || die "module do not exit CONFIG_COMPAT_32BIT_TIME"
+	# uinput: Steam Input / Proton controller emulation, and Wayland tools
+	# like ydotool/wtype that DWL setups commonly rely on.
+	try ./scripts/config --module CONFIG_INPUT_UINPUT || die "module do not exit CONFIG_INPUT_UINPUT"
+	try ./scripts/config --enable CONFIG_INPUT_JOYDEV || die "module do not exit CONFIG_INPUT_JOYDEV"
+	try ./scripts/config --enable CONFIG_JOYSTICK_XPAD || die "module do not exit CONFIG_JOYSTICK_XPAD"
+	try ./scripts/config --enable CONFIG_HID_SONY || die "module do not exit CONFIG_HID_SONY"
+	try ./scripts/config --enable CONFIG_HID_NINTENDO || die "module do not exit CONFIG_HID_NINTENDO"
+	# Add/remove HID_* controller drivers above to match whatever controllers
+	# you actually own; these are just the common ones.
 
 	# =============================================================================
 	# 20. VirtIO (paravirtualized drivers for guests)
@@ -390,6 +465,15 @@ function kernel_script() {
 	try ./scripts/config --enable CONFIG_MACVTAP || die "module do not exit CONFIG_MACVTAP"
 	try ./scripts/config --enable CONFIG_TUN || die "module do not exit CONFIG_TUN"
 	try ./scripts/config --enable CONFIG_TAP || die "module do not exit CONFIG_TAP"
+
+	# NAT for VM guest networking (libvirt/NetworkManager default networks
+	# route guests out through the host via MASQUERADE)
+	try ./scripts/config --enable CONFIG_NETFILTER_XT_MATCH_ADDRTYPE || die "module do not exit CONFIG_NETFILTER_XT_MATCH_ADDRTYPE"
+	try ./scripts/config --enable CONFIG_NETFILTER_XT_MATCH_CGROUP || die "module do not exit CONFIG_NETFILTER_XT_MATCH_CGROUP"
+	try ./scripts/config --enable CONFIG_NETFILTER_XT_MARK || die "module do not exit CONFIG_NETFILTER_XT_MARK"
+	try ./scripts/config --module CONFIG_IP_NF_FILTER || die "module do not exit CONFIG_IP_NF_FILTER"
+	try ./scripts/config --module CONFIG_IP_NF_NAT || die "module do not exit CONFIG_IP_NF_NAT"
+	try ./scripts/config --module CONFIG_IP_NF_TARGET_MASQUERADE || die "module do not exit CONFIG_IP_NF_TARGET_MASQUERADE"
 
 	# =============================================================================
 	# 23. 9P / FUSE (file sharing between host and guests)
@@ -531,6 +615,13 @@ function kernel_script() {
 	try ./scripts/config --enable CONFIG_SLUB_CPU_PARTIAL || die "module do not exit CONFIG_SLUB_CPU_PARTIAL"
 
 	# =============================================================================
+	# Firmware Loader (linux-firmware ships zstd-compressed blobs)
+	# =============================================================================
+	try ./scripts/config --enable CONFIG_FW_LOADER || die "Failed to set CONFIG_FW_LOADER"
+	try ./scripts/config --enable CONFIG_FW_LOADER_COMPRESS || die "Failed to set CONFIG_FW_LOADER_COMPRESS"
+	try ./scripts/config --enable CONFIG_FW_LOADER_COMPRESS_ZSTD || die "Failed to set CONFIG_FW_LOADER_COMPRESS_ZSTD"
+
+	# =============================================================================
 	# Devtmpfs (required for /dev/disk/by-uuid/ in initramfs)
 	# =============================================================================
 	try ./scripts/config --enable CONFIG_DEVTMPFS || die "Failed to set CONFIG_DEVTMPFS"
@@ -543,17 +634,27 @@ function kernel_script() {
 	#   1. Add to /etc/modprobe.d/kvm.conf:
 	#        options kvm_amd nested=1
 	#
-	#   2. For VFIO GPU passthrough with RTX 3090:
-	#      - If you have a SECOND GPU for the host: add to kernel cmdline:
-	#          amd_iommu=on iommu=pt vfio-pci.ids=10de:XXXX,10de:YYYY
-	#        (get IDs from: lspci -nn | grep -i nvidia)
-	#      - If you only have the RTX 3090 (single-GPU passthrough):
-	#        DO NOT add vfio-pci to ugrd. Use a hook script to unbind nvidia
-	#        and bind vfio-pci AFTER boot / before starting the VM.
+	#   2. For VFIO GPU passthrough with RTX 3090 (later, single-GPU today):
+	#      - Nouveau is now built as a module specifically so it can be
+	#        unbound. DO NOT add vfio-pci to ugrd for a single-GPU box; use a
+	#        hook script that does `rmmod nouveau` + binds vfio-pci to the
+	#        3090's PCI IDs right before starting the VM, and reloads nouveau
+	#        after the VM exits.
+	#      - Get the IDs with: lspci -nn | grep -i nvidia
+	#      - If a second GPU (e.g. an AMD/Intel iGPU or card) is ever added
+	#        for the host, you can instead statically bind vfio-pci at boot
+	#        via cmdline: amd_iommu=on iommu=pt vfio-pci.ids=10de:XXXX,10de:YYYY
 	#
 	#   3. WARNING: Since kernel 6.0, loading VFIO in initramfs can freeze
 	#      the framebuffer. With GPG encryption in ugrd, this means you may
 	#      not see the passphrase prompt. Test with a fallback unlock method
 	#      (serial console, SSH, or second GPU) before relying on this.
+	#
+	#   4. Verify the real NIC/WiFi/audio chips with `lspci -nn` after first
+	#      boot and prune whichever driver in sections 17/19b doesn't match.
+	#
+	#   5. Steam/Proton also needs 32-bit userspace libraries, not just the
+	#      kernel's IA32_EMULATION. Add ABI_X86="32 64" to make.conf so
+	#      Portage builds 32-bit variants of mesa/audio/etc.
 	# =============================================================================
 }
