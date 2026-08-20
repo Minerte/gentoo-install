@@ -6,6 +6,7 @@ sys-auth/seatd builtin server
 sys-auth/pambase elogind
 sys-apps/coreutils hostname openssl
 sys-apps/util-linux udev cryptsetup
+sys-apps/systemd-utils tmpfiles
 sys-libs/libsepol static-libs
 sec-policy/selinux-base-policy unconfined
 
