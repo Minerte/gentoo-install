@@ -5,7 +5,7 @@ sys-kernel/installkernel efistub ugrd
 sys-auth/seatd builtin server
 sys-auth/pambase elogind
 sys-apps/coreutils hostname openssl
-sys-apps/systemd-utils tmpfiles
+sys-apps/util-linux udev cryptsetup
 sys-libs/libsepol static-libs
 sec-policy/selinux-base-policy unconfined
 
@@ -13,12 +13,14 @@ sec-policy/selinux-base-policy unconfined
 # Add bluetooth only if you actually have/use BT audio devices - otherwise
 # it's a needless dependency chain.
 media-video/pipewire sound-server pipewire-alsa bluetooth
+media-video/libva-utils putsurface
 
 # media-libs/*
 media-libs/freetype harfbuzz png
 media-libs/harfbuzz truetype glib
 media-libs/libglvnd X
 media-libs/libepoxy X
+media-libs/openh264 plugin
 # vulkan: needed for the nvk Vulkan driver (VIDEO_CARDS="nouveau nvk") and Steam/Proton
 # wayland+gbm: needed for DWL/wlroots to get a working EGL/KMS render path
 media-libs/mesa X vulkan wayland gbm

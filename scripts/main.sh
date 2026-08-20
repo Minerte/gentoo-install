@@ -2,15 +2,10 @@ set -uo pipefail
 
 function main_install() {
     install_stage3
-    mount_efivars
-
-    bind_repo_dir
-
-    sleep 5
     export_disk_uuids
-    sleep 5
 
     # After disk_format and stage3, ensure /mnt/gentoo/efi exists as a directory
+    mount_efivars
     if [[ ! -d "$ROOT_MOUNTPOINT/efi" ]]; then
         die "EFI directory does not exist at $ROOT_MOUNTPOINT/efi!"
     fi
@@ -50,24 +45,20 @@ function main_install_gentoo_in_chroot() {
 		|| die "Could not change root password"
 
     echo "mounting $EFI_PART to /efi"
-    if ! mountpoint -q /efi; then
-        mount /dev/disk/by-uuid/"$CHROOT_EFI_UUID" /efi || die "Could not mount EFI by UUID"
-        einfo "EFI mounted at /efi"
-        sleep 5
-        mkdir -p /efi/EFI/Gentoo
-        einfo "/efi/Gentoo created"
-    else
-        einfo "EFI already mounted at /efi"
-        sleep 5
-    fi
+    mount_efivars
+    mount /dev/disk/by-uuid/"$CHROOT_EFI_UUID" /efi || die "Could not mount EFI by UUID"
+    einfo "EFI mounted at /efi"
+    mkdir -p /efi/EFI/Gentoo || die "Could not create /efi/EFI/Gentoo"
+    einfo "/efi/Gentoo created"
 
     # FIX: Ensure /efi is mounted on boot (GPG keys live here)
     einfo "Adding EFI UUID TO SWAP"
     if ! grep -q "/efi" /etc/fstab; then
-        echo "UUID=$CHROOT_EFI_UUID    /efi    vfat   defaults,noatime                                       0 2" >> /etc/fstab
+        echo "UUID=$CHROOT_EFI_UUID  /efi     vfat   defaults,noatime                                             0 2" >> /etc/fstab
     fi
 
-    echo "Syncing to DB"
+    echo "Syncing portage tree"
+    try emerge-websync
     try emerge --sync --quiet
 
     configure_system
@@ -87,22 +78,14 @@ function main_install_gentoo_in_chroot() {
     einfo "Re-emerge ALL system apps"
     try emerge --emptytree -1 @installed
 
-    env_update
-
     echo "merging filesystem"
     try emerge --verbose sys-fs/cryptsetup sys-fs/btrfs-progs \
         sys-fs/e2fsprogs sys-fs/dosfstools app-crypt/gnupg \
         app-arch/zstd sys-boot/efibootmgr sys-apps/util-linux
 
-    env_update
-
     generate_initramfs
 
-    configure_uefi_mkconfig_cmdline
-
     install_kernel
-
-    env_update
 
     echo "Emerging tools"
     try emerge --verbose sys-block/io-scheduler-udev-rules \
@@ -168,6 +151,8 @@ function install_kernel() {
     echo "Selecting kernel to set 1"
     try eselect kernel set 1 \
         || die "Could not select kernel source"
+
+    configure_uefi_mkconfig_cmdline
 
     cd /usr/src/linux \
         || die "could not change to /usr/linux"
@@ -269,18 +254,16 @@ function generate_initramfs() {
 modules = [
     "ugrd.base.console",
     "ugrd.base.keymap",
-    "ugrd.kmod.usb",
-    "ugrd.kmod.nvme",
     "ugrd.crypto.cryptsetup",
     "ugrd.crypto.gpg",
     "ugrd.fs.btrfs",
-    "ugrd.fs.resume"
+    "ugrd.fs.resume",
+    "ugrd.kmod.nvme",
+    "ugrd.kmod.usb"
 ]
 
 keymap_file = "/usr/share/keymaps/i386/qwerty/sv-latin1.map.gz"
 late_resume = true
-
-mount_timeout = 5
 
 auto_mounts = ['/efi']
 
@@ -307,7 +290,7 @@ function configure_uefi_mkconfig_cmdline() {
 
     local ROOT_UUID="${ROOT_UUID:-${CHROOT_ROOT_UUID:-}}"
     local CRYPTROOT_UUID="${CRYPTROOT_UUID:-${CHROOT_ROOT_UNDERLYING_UUID:-}}"
-    local SWAP_UUID="${SWAP_UUID:-${CHROOT_SWAP_UNDERLYING_UUID:-}}"
+    # local SWAP_UUID="${SWAP_UUID:-${CHROOT_SWAP_UNDERLYING_UUID:-}}"
     local ROOT_LUKS_UUID="${CHROOT_ROOT_UNDERLYING_UUID:-}"
 
     [[ -n "$ROOT_UUID" ]] \
@@ -316,8 +299,8 @@ function configure_uefi_mkconfig_cmdline() {
     [[ -n "$CRYPTROOT_UUID" ]] \
         || die "CRYPTROOT_UUID/CHROOT_ROOT_UNDERLYING_UUID is empty"
 
-    [[ -n "$SWAP_UUID" ]] \
-        || die "SWAP_UUID/CHROOT_SWAP_UNDERLYING_UUID is empty"
+    # [[ -n "$SWAP_UUID" ]] \
+    #     || die "SWAP_UUID/CHROOT_SWAP_UNDERLYING_UUID is empty"
 
     if [[ "$ROOT_UUID" == "$ROOT_LUKS_UUID" ]]; then
         die "root=UUID must use CHROOT_ROOT_UUID, not CHROOT_ROOT_UNDERLYING_UUID"
@@ -342,7 +325,7 @@ function configure_uefi_mkconfig_cmdline() {
         [[ -n "$detected_subvol" ]] && root_subvol="$detected_subvol"
     fi
 
-    local cmdline="root=UUID=${ROOT_UUID} rootflags=subvol=${root_subvol} rd.luks.uuid=${CRYPTROOT_UUID} resume=UUID=${SWAP_UUID} ro"
+    local cmdline="root=UUID=${ROOT_UUID} rootflags=subvol=${root_subvol} rootfstype=btrfs rd.luks.uuid=${CRYPTROOT_UUID} resume=/dev/mapper/cryptswap ro"
 
     einfo "Target kernel cmdline:"
     echo "$cmdline"
@@ -358,6 +341,7 @@ function configure_uefi_mkconfig_cmdline() {
     if [[ -f "$default_file" ]]; then
         cp "$default_file" "${default_file}.bak" \
             || ewarn "Could not back up $default_file"
+        sleep 5
     fi
 
     mkdir -p "$(dirname "$default_file")"
@@ -379,7 +363,7 @@ function configure_uefi_mkconfig_cmdline() {
             || die "Could not write $default_file"
     fi
 
-    echo 'NO_NVRAM="yes"' >> /etc/default/uefi-mkconfig
+    # echo 'NO_NVRAM="yes"' >> /etc/default/uefi-mkconfig
 
     einfo "Updated $default_file:"
     cat "$default_file"
