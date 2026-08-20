@@ -5,7 +5,6 @@ function main_install() {
     export_disk_uuids
 
     # After disk_format and stage3, ensure /mnt/gentoo/efi exists as a directory
-    mount_efivars
     if [[ ! -d "$ROOT_MOUNTPOINT/efi" ]]; then
         die "EFI directory does not exist at $ROOT_MOUNTPOINT/efi!"
     fi
@@ -45,7 +44,6 @@ function main_install_gentoo_in_chroot() {
 		|| die "Could not change root password"
 
     echo "mounting $EFI_PART to /efi"
-    mount_efivars
     mount /dev/disk/by-uuid/"$CHROOT_EFI_UUID" /efi || die "Could not mount EFI by UUID"
     einfo "EFI mounted at /efi"
     mkdir -p /efi/EFI/Gentoo || die "Could not create /efi/EFI/Gentoo"
@@ -363,7 +361,7 @@ function configure_uefi_mkconfig_cmdline() {
             || die "Could not write $default_file"
     fi
 
-    # echo 'NO_NVRAM="yes"' >> /etc/default/uefi-mkconfig
+    echo 'NO_NVRAM="yes"' >> /etc/default/uefi-mkconfig
 
     einfo "Updated $default_file:"
     cat "$default_file"

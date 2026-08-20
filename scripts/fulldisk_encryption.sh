@@ -383,16 +383,6 @@ function bind_repo_dir() {
     fi
     einfo "Bind mount verified: dispatch_chroot.sh exists"
 }
-function mount_efivars() {
-	# Skip if already mounted
-	mountpoint -q -- "/sys/firmware/efi/efivars" \
-		&& return
-
-	# Mount efivars
-	einfo "Mounting efivars"
-	mount -o remount,rw -t efivarfs efivarfs /sys/firmware/efi/efivars \
-		|| die "Could not mount efivarfs"
-}
 
 function export_disk_uuids() {
     einfo "Resolving disk UUIDs on host for chroot environment"
