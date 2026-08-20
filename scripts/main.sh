@@ -288,7 +288,7 @@ function configure_uefi_mkconfig_cmdline() {
 
     local ROOT_UUID="${ROOT_UUID:-${CHROOT_ROOT_UUID:-}}"
     local CRYPTROOT_UUID="${CRYPTROOT_UUID:-${CHROOT_ROOT_UNDERLYING_UUID:-}}"
-    # local SWAP_UUID="${SWAP_UUID:-${CHROOT_SWAP_UNDERLYING_UUID:-}}"
+    local SWAP_UUID="${SWAP_UUID:-${CHROOT_SWAP_UNDERLYING_UUID:-}}"
     local ROOT_LUKS_UUID="${CHROOT_ROOT_UNDERLYING_UUID:-}"
 
     [[ -n "$ROOT_UUID" ]] \
@@ -297,8 +297,8 @@ function configure_uefi_mkconfig_cmdline() {
     [[ -n "$CRYPTROOT_UUID" ]] \
         || die "CRYPTROOT_UUID/CHROOT_ROOT_UNDERLYING_UUID is empty"
 
-    # [[ -n "$SWAP_UUID" ]] \
-    #     || die "SWAP_UUID/CHROOT_SWAP_UNDERLYING_UUID is empty"
+    [[ -n "$SWAP_UUID" ]] \
+        || die "SWAP_UUID/CHROOT_SWAP_UNDERLYING_UUID is empty"
 
     if [[ "$ROOT_UUID" == "$ROOT_LUKS_UUID" ]]; then
         die "root=UUID must use CHROOT_ROOT_UUID, not CHROOT_ROOT_UNDERLYING_UUID"
@@ -323,7 +323,7 @@ function configure_uefi_mkconfig_cmdline() {
         [[ -n "$detected_subvol" ]] && root_subvol="$detected_subvol"
     fi
 
-    local cmdline="root=UUID=${ROOT_UUID} rootflags=subvol=${root_subvol} rootfstype=btrfs rd.luks.uuid=${CRYPTROOT_UUID} resume=/dev/mapper/cryptswap ro"
+    local cmdline="root=UUID=${ROOT_UUID} rootflags=subvol=${root_subvol} rootfstype=btrfs rd.luks.uuid=${CRYPTROOT_UUID} resume=${SWAP_UUID} ro"
 
     einfo "Target kernel cmdline:"
     echo "$cmdline"
