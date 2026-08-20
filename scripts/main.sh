@@ -36,11 +36,10 @@ function install_stage3() {
 
 function main_install_gentoo_in_chroot() {
     echo "we are in chroot"
-
     # Remove the root password, making the account accessible for automated
-	# tasks during the period of installation.
-	einfo "Clearing root password"
-	passwd -d root \
+    # tasks during the period of installation.
+    einfo "Clearing root password"
+    passwd -d root \
 		|| die "Could not change root password"
 
     echo "mounting $EFI_PART to /efi"
@@ -56,7 +55,8 @@ function main_install_gentoo_in_chroot() {
     fi
 
     echo "Syncing portage tree"
-    try emerge-websync
+    try emerge-webrsync
+    sleep 5
     try emerge --sync --quiet
 
     configure_system

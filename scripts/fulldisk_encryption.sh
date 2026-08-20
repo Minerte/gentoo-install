@@ -267,9 +267,6 @@ LABEL=BTROOT    /tmp    btrfs   defaults,noatime,nosuid,nodev,noexec,compress=zs
 EOF
 
     einfo "fstab set"
-
-    echo "Copying DNS info to /mnt/gentoo/etc/"
-    try cp --dereference /etc/resolv.conf /mnt/gentoo/etc/
     # If dualboot uncomment below
     # sed -i "s/clock=\"UTC\"/clock=\"local\"/g" ./etc/conf.d/hwclock
     einfo "Succesfully configure basic system"

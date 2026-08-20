@@ -47,6 +47,22 @@ function flush_stdin() {
 	while read -r -t 0.01 empty_stdin; do true; done
 }
 
+function get_device_by_ptuuid() {
+	local ptuuid="${1,,}"
+	local dev
+	if [[ -v CACHED_LSBLK_OUTPUT && -n "$CACHED_LSBLK_OUTPUT" ]]; then
+		dev="$CACHED_LSBLK_OUTPUT"
+	else
+		dev="$(lsblk --all --path --pairs --output NAME,PTUUID,PARTUUID)" \
+			|| die "Error while executing lsblk to find PTUUID=$ptuuid"
+	fi
+	dev="$(grep "ptuuid=\"$ptuuid\" partuuid=\"\"" <<< "${dev,,}")" \
+		|| die "Could not find PTUUID=... in lsblk output"
+	dev="${dev%'" ptuuid='*}"
+	dev="${dev#'name="'}"
+	echo -n "$dev"
+}
+
 function init_bash() {
 	source /etc/profile
 	umask 0077
