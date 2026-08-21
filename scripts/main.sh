@@ -260,6 +260,8 @@ modules = [
     "ugrd.kmod.usb"
 ]
 
+mount_timeout = 5
+
 keymap_file = "/usr/share/keymaps/i386/qwerty/sv-latin1.map.gz"
 late_resume = true
 
@@ -323,7 +325,7 @@ function configure_uefi_mkconfig_cmdline() {
         [[ -n "$detected_subvol" ]] && root_subvol="$detected_subvol"
     fi
 
-    local cmdline="root=UUID=${ROOT_UUID} rootflags=subvol=${root_subvol} rootfstype=btrfs rd.luks.uuid=${CRYPTROOT_UUID} resume=${SWAP_UUID} ro"
+    local cmdline="root=UUID=${ROOT_UUID} rootfstype=btrfs rootflags=subvol=${root_subvol} rd.luks.uuid=${CRYPTROOT_UUID} resume=${SWAP_UUID} rootdelay=10 ro"
 
     einfo "Target kernel cmdline:"
     echo "$cmdline"
