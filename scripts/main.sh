@@ -188,10 +188,10 @@ function install_kernel() {
 
     # Copy to UEFI removable media fallback path so it boots without NVRAM entries
     mkdir -p /efi/EFI/BOOT || die "Could not create /efi/EFI/BOOT"
-    cp "/efi/EFI/Gentoo/vmlinuz-${kver}.efi" /efi/EFI/BOOT/BOOTX64.EFI \
-        || die "Could not copy kernel to fallback BOOTX64.EFI"
-    einfo "Fallback bootloader installed at /efi/EFI/BOOT/BOOTX64.EFI"
-    sleep 5
+    # cp "/efi/EFI/Gentoo/vmlinuz-${kver}.efi" /efi/EFI/BOOT/BOOTX64.EFI \
+    #     || die "Could not copy kernel to fallback BOOTX64.EFI"
+    # einfo "Fallback bootloader installed at /efi/EFI/BOOT/BOOTX64.EFI"
+    # sleep 5
 
     echo "Installing kernel (triggers installkernel hooks -> ugrd -> uefi-mkconfig)"
     einfo "Deploying kernel postinst hook for USB fallback"
