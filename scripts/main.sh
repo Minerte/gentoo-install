@@ -99,6 +99,10 @@ function main_install_gentoo_in_chroot() {
     echo "Set root password"
     try passwd
     einfo "script completed"
+
+    einfo "Using sync command"
+    try sync
+    
 }
 
 function configure_system() {
