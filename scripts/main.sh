@@ -46,6 +46,7 @@ function main_install_gentoo_in_chroot() {
     mount /dev/disk/by-uuid/"$CHROOT_EFI_UUID" /efi || die "Could not mount EFI by UUID"
     einfo "EFI mounted at /efi"
     mkdir -p /efi/EFI/Gentoo || die "Could not create /efi/EFI/Gentoo"
+    mkdir -p /efi/EFI/BOOT || die "Could not create /efi/EFI/BOOT"
     einfo "/efi/Gentoo created"
 
     # FIX: Ensure /efi is mounted on boot (GPG keys live here)
@@ -187,7 +188,6 @@ function install_kernel() {
     sleep 5
 
     # Copy to UEFI removable media fallback path so it boots without NVRAM entries
-    mkdir -p /efi/EFI/BOOT || die "Could not create /efi/EFI/BOOT"
     # cp "/efi/EFI/Gentoo/vmlinuz-${kver}.efi" /efi/EFI/BOOT/BOOTX64.EFI \
     #     || die "Could not copy kernel to fallback BOOTX64.EFI"
     # einfo "Fallback bootloader installed at /efi/EFI/BOOT/BOOTX64.EFI"
@@ -223,6 +223,11 @@ EOF
     try make install || die "make install failed"
     sleep 10
 
+    sleep 30
+    ls -lh /efi/EFI/Gentoo/
+    ls -lh /efi/EFI/BOOT/
+    sleep 5
+    
     cd \
         || die "Could not change to root dir"
 }
