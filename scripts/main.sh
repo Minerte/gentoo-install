@@ -124,6 +124,8 @@ function configure_system() {
 EOF
 
     einfo "Selecting timezone"
+    einfo "timezone set to ${TIMEZONE}"
+    ln -sf ../usr/share/zoneinfo/"$TIMEZONE" /etc/localtime
 	echo "$TIMEZONE" > /etc/timezone \
 		|| die "Could not write /etc/timezone"
 	chmod 644 /etc/timezone \
