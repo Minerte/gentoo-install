@@ -13,7 +13,7 @@ sec-policy/selinux-base-policy unconfined
 # Piewire
 # Add bluetooth only if you actually have/use BT audio devices - otherwise
 # it's a needless dependency chain.
-media-video/pipewire sound-server pipewire-alsa bluetooth
+media-video/pipewire sound-server pipewire-alsa pulseaudio
 media-video/libva-utils putsurface
 
 # media-libs/*
