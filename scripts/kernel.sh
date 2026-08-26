@@ -188,7 +188,7 @@ function kernel_script() {
 	# passthrough. As a module you can rmmod it and bind vfio-pci on demand.
 	# Your ugrd early console already runs on simpledrm/EFI framebuffer, so
 	# nouveau does not need to be present in the initramfs.
-	try ./scripts/config --enable CONFIG_DRM_NOUVEAU || die "Failed to set CONFIG_DRM_NOUVEAU=y"
+	try ./scripts/config --module CONFIG_DRM_NOUVEAU || die "Failed to set CONFIG_DRM_NOUVEAU=m"
 
 	# =============================================================================
 	# 11. Console / TTY / VT
