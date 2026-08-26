@@ -24,7 +24,7 @@ media-libs/libepoxy X
 media-libs/openh264 plugin
 # vulkan: needed for the nvk Vulkan driver (VIDEO_CARDS="nouveau nvk") and Steam/Proton
 # wayland+gbm: needed for DWL/wlroots to get a working EGL/KMS render path
-media-libs/mesa X vulkan wayland gbm
+media-libs/mesa X vulkan wayland
 media-libs/libvpx postproc
 
 # app-alternatices/*
