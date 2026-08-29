@@ -1,33 +1,30 @@
 # Kernel
 sys-kernel/installkernel efistub ugrd
 
-# sys
-sys-auth/seatd builtin server
-sys-auth/pambase elogind
-sys-apps/coreutils hostname openssl
-sys-apps/util-linux udev cryptsetup
-sys-apps/systemd-utils tmpfiles
-sys-libs/libsepol static-libs
+# Core
+
+## SElinux
 sec-policy/selinux-base-policy unconfined
+sys-libs/libsepol static-libs
+sys-libs/libselinux static-libs
+sys-libs/glibc static-libs
 
-# Piewire
-# Add bluetooth only if you actually have/use BT audio devices - otherwise
-# it's a needless dependency chain.
-media-video/pipewire sound-server pipewire-alsa pulseaudio
-media-video/libva-utils putsurface
+## Init
+sys-apps/openrc bash
 
-# media-libs/*
-media-libs/freetype harfbuzz png
-media-libs/harfbuzz truetype glib
-media-libs/libglvnd X
-media-libs/libepoxy X
-media-libs/openh264 plugin
-# vulkan: needed for the nvk Vulkan driver (VIDEO_CARDS="nouveau nvk") and Steam/Proton
-# wayland+gbm: needed for DWL/wlroots to get a working EGL/KMS render path
-media-libs/mesa X vulkan wayland
-media-libs/libvpx postproc
+## Utils
+sys-apps/coreutils hostname kill openssl
+sys-apps/util-linux cryptsetup uuid udev
+sys-apps/systemd-utils tmpfiles udev
 
-# app-alternatices/*
+# Core 
+
+# Sys
+sys-auth/seatd builtin server
+
+# App
+
+## app-alternatices/*
 app-alternatives/gpg reference ssl
 app-alternatives/ninja reference
 app-alternatives/bzip2 lbzip2
@@ -40,60 +37,70 @@ app-alternatives/tar gnu
 app-alternatives/sh bash
 app-alternatives/bc gnu
 
-# links to app-alternatives/gpg
-app-crypt/gnupg alternatives bzip2 tofu tools ssl smartcard usb user-socket 
+app-admin/sudo ssl 
+app-crypt/gnupg alternatives smartcard usb tools ssl
+app-shells/bash-completion eselect
 
-# Lua and neovim
+## Emulation
+app-emulation/qemu spice usbredir virtfs virgl sdl gtk vnc pipewire alsa qemu_softmmu_targets_x86_64
+app-emulation/libvirt qemu libvirtd virt-network fuse nfs numa udev policykit
+app-emulation/virt-manager gui policykit
+
+# App
+
+dev-vcs/git gpg highlight curl
+dev-libs/openssl asm
+dev-libs/nettle gmp
+dev-libs/glib introspection
+dev-cpp/eigen openmp boost
+dev-util/mesa_clc llvm_slot_22
+
+# Media
+
+# media-video/*
+media-video/pipewire pipewire-alsa sound-server pulseaudio
+media-video/libva-utils putsurface
+
+# media-libs/
+
+# Media
+
+# x11-*
+x11-libs/cairo X
+x11-base/xorg-server xvfb
+
+# WEB
+www-client/firefox wayland jumbo-build llvm_slot_21 hwaccel openh264
+
+# Neovim
 app-editors/neovim lua_single_target_luajit
 dev-lua/luv lua_single_target_luajit -lua_single_target_lua5-4
 dev-lua/mpack lua_targets_luajit lua_single_target_luajit
 dev-lua/lpeg lua_targets_luajit lua_single_target_luajit
 dev-lua/lua-cjson internal-fpconv
 
-# x11-*
-x11-libs/cairo X glib
-x11-base/xorg-server xorg xvfb
+# Network
+net-misc/networkmanager nss iptables tools dhcpcd
+net-misc/curl ssl http3
+net-misc/iputils arping
+net-dns/dnsmasq dhcp
+net-wireless/wpa_supplicant dbus
 
-# LLVM
+# Lang
+dev-lang/python ssl sqlite
+dev-lang/rust nightly rust-analyzer rust-src rustfmt
+
+## LLVM 
 llvm-runtimes/compiler-rt-sanitizers asan ubsan
 llvm-runtimes/libclc spirv
 llvm-core/llvm binutils-plugin
 
+# Lang
+
 # DWL
-gui-libs/wlroots session libinput X
-# dwl itself lives at gui-wm/dwl, not gui-apps/dwl. "seatd" and "X" (XWayland)
-# are real flags on the ebuild.
-# gui-wm/dwl X seatd
-x11-base/xwayland
+gui-libs/wlroots drm libinput session X
 
-# Firefox
-# hwaccel: pulls in vaapitest/pciutils for HW video-decode self-test and correct
-# about:config defaults. There's no separate "vaapi"/"ffmpeg" USE flag - those
-# were wrong; VA-API support rides on hwaccel + your video driver.
-www-client/firefox wayland jumbo-build llvm_slot_21 hwaccel openh264
-
-# dev
-dev-cpp/eigen openmp boost
-dev-util/mesa_clc llvm_slot_22
-dev-lang/python ssl sqlite
-dev-libs/nettle gmp
-dev-libs/glib introspection
-
-# Networking packages
-net-misc/networkmanager nss iptables tools dhcpcd
-net-misc/curl ssl
-net-misc/iputils arping
-
-# QEMU / KVM / virt-manager
-# "opengl" isn't a real qemu flag - the one that actually gives you GPU-
-# accelerated virtio-gpu display is "virgl". qemu_user_targets_x86_64 is for
-# running foreign x86_64 binaries via binfmt on a non-x86_64 host - not
-# relevant here, so it's dropped. libvirt was missing entirely; virt-manager
-# needs it, and virt-manager's own flags are just gui+policykit (spice/gtk
-# were never valid on virt-manager - spice/usbredir belong on qemu itself).
-app-emulation/qemu spice usbredir virtfs virgl sdl gtk vnc pipewire alsa qemu_softmmu_targets_x86_64
-app-emulation/libvirt qemu libvirtd virt-network fuse nfs numa udev policykit
-app-emulation/virt-manager gui policykit
+### EXTRA
 
 # CAD / EDA
 # Flag names drift between versions - run `equery uses <package>` before
