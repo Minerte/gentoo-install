@@ -38,7 +38,7 @@ app-alternatives/sh bash
 app-alternatives/bc gnu
 
 app-admin/sudo ssl 
-app-crypt/gnupg alternatives smartcard usb tools ssl
+app-crypt/gnupg alternatives smartcard tofu usb tools ssl
 app-shells/bash-completion eselect
 
 ## Emulation
@@ -54,6 +54,7 @@ dev-libs/nettle gmp
 dev-libs/glib introspection
 dev-cpp/eigen openmp boost
 dev-util/mesa_clc llvm_slot_22
+dev-libs/libpcre2 static-libs
 
 # Media
 
@@ -62,12 +63,17 @@ media-video/pipewire pipewire-alsa sound-server pulseaudio
 media-video/libva-utils putsurface
 
 # media-libs/
+media-libs/freetype png harfbuzz
+media-libs/harfbuzz truetype glib
+media-libs/mesa X
+media-libs/libglvnd X
+media-libs/libepoxy X
 
 # Media
 
 # x11-*
+x11-base/xorg-server xorg xvfb
 x11-libs/cairo X
-x11-base/xorg-server xvfb
 
 # WEB
 www-client/firefox wayland jumbo-build llvm_slot_21 hwaccel openh264
@@ -80,11 +86,12 @@ dev-lua/lpeg lua_targets_luajit lua_single_target_luajit
 dev-lua/lua-cjson internal-fpconv
 
 # Network
-net-misc/networkmanager nss iptables tools dhcpcd
-net-misc/curl ssl http3
+net-misc/networkmanager dhcpcd iptables nss tools 
+net-misc/curl adns alt-svc http3 httpsrr ssl quic
 net-misc/iputils arping
 net-dns/dnsmasq dhcp
 net-wireless/wpa_supplicant dbus
+net-libs/ngtcp2 ssl 
 
 # Lang
 dev-lang/python ssl sqlite
