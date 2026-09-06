@@ -193,12 +193,6 @@ function install_kernel() {
     einfo "bzImage to /efi/EFI/Gentoo/vmlinuz-$kver.efi copied successfully"
     sleep 5
 
-    # Copy to UEFI removable media fallback path so it boots without NVRAM entries
-    # cp "/efi/EFI/Gentoo/vmlinuz-${kver}.efi" /efi/EFI/BOOT/BOOTX64.EFI \
-    #     || die "Could not copy kernel to fallback BOOTX64.EFI"
-    # einfo "Fallback bootloader installed at /efi/EFI/BOOT/BOOTX64.EFI"
-    # sleep 5
-
     echo "Installing kernel (triggers installkernel hooks -> ugrd -> uefi-mkconfig)"
     einfo "Deploying kernel postinst hook for USB fallback"
     mkdir -p /etc/kernel/postinst.d
@@ -229,11 +223,14 @@ EOF
     try make install || die "make install failed"
     sleep 10
 
-    sleep 30
-    ls -lh /efi/EFI/Gentoo/
-    ls -lh /efi/EFI/BOOT/
-    sleep 5
-    
+    if [[ -f "/efi/EFI/Gentoo/vmlinuz-${kver}.efi" ]]; then
+        mkdir -p /efi/EFI/BOOT
+        cp -f "/efi/EFI/Gentoo/vmlinuz-${kver}.efi" /efi/EFI/BOOT/BOOTX64.EFI
+        einfo "Manually updated USB fallback at /efi/EFI/BOOT/BOOTX64.EFI with embedded cmdline"
+    else
+        ewarn "Kernel image not found at /efi/EFI/Gentoo/vmlinuz-${kver}.efi"
+    fi
+
     cd \
         || die "Could not change to root dir"
 }
