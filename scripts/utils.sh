@@ -1,5 +1,3 @@
-set -uo pipefail
-
 function cache_lsblk_output() {
 	CACHED_LSBLK_OUTPUT="$(lsblk --all --path --pairs --output NAME,PTUUID,PARTUUID)" \
 		|| die "Error while executing lsblk to cache output"

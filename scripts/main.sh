@@ -1,5 +1,3 @@
-set -uo pipefail
-
 function main_install() {
     install_stage3
     export_disk_uuids

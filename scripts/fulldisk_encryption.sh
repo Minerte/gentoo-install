@@ -1,5 +1,3 @@
-set -uo pipefail
-
 function preprocess_config() {
 	check_config
 }
