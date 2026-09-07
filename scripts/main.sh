@@ -157,7 +157,7 @@ function install_kernel() {
     try eselect kernel set 1 \
         || die "Could not select kernel source"
 
-    configure_uefi_mkconfig_cmdline
+    edit_uefi-mkconfig
 
     cd /usr/src/linux \
         || die "could not change to /usr/linux"
@@ -293,88 +293,13 @@ EOF
     einfo "ugrd configuration deployed to $config_file"
 }
 
-function configure_uefi_mkconfig_cmdline() {
-    einfo "Configuring /etc/default/uefi-mkconfig"
+function edit_uefi-mkconfig() {
+    einfo "Editing uefi-mkconfig to include cryptsetup and resume"
 
-    local ROOT_UUID="${ROOT_UUID:-${CHROOT_ROOT_UUID:-}}"
-    local CRYPTROOT_UUID="${CRYPTROOT_UUID:-${CHROOT_ROOT_UNDERLYING_UUID:-}}"
-    local SWAP_UUID="${SWAP_UUID:-${CHROOT_SWAP_UNDERLYING_UUID:-}}"
-    local ROOT_LUKS_UUID="${CHROOT_ROOT_UNDERLYING_UUID:-}"
+    # local cmdline="root=UUID=${ROOT_UUID} rootfstype=btrfs rootflags=subvol=${root_subvol} rd.luks.uuid=${CRYPTROOT_UUID} resume=${SWAP_UUID} ro"
+    # DISABLE_LABEL_LIMIT=true
 
-    [[ -n "$ROOT_UUID" ]] \
-        || die "ROOT_UUID/CHROOT_ROOT_UUID is empty"
-
-    [[ -n "$CRYPTROOT_UUID" ]] \
-        || die "CRYPTROOT_UUID/CHROOT_ROOT_UNDERLYING_UUID is empty"
-
-    [[ -n "$SWAP_UUID" ]] \
-        || die "SWAP_UUID/CHROOT_SWAP_UNDERLYING_UUID is empty"
-
-    if [[ "$ROOT_UUID" == "$ROOT_LUKS_UUID" ]]; then
-        die "root=UUID must use CHROOT_ROOT_UUID, not CHROOT_ROOT_UNDERLYING_UUID"
-    fi
-
-    # Detect Btrfs subvolume, fallback to activeroot
-    local root_subvol="activeroot"
-    local root_opts
-    local detected_subvol
-
-    root_opts=$(awk '$2 == "/" {print $4; exit}' /proc/mounts 2>/dev/null || true)
-
-    if [[ -n "$root_opts" ]]; then
-        detected_subvol=$(printf '%s\n' "$root_opts" \
-            | grep -o 'subvol=[^,]*' \
-            | head -n1 \
-            | cut -d= -f2- \
-            || true)
-
-        detected_subvol=${detected_subvol#/}
-
-        [[ -n "$detected_subvol" ]] && root_subvol="$detected_subvol"
-    fi
-
-    local cmdline="root=UUID=${ROOT_UUID} rootfstype=btrfs rootflags=subvol=${root_subvol} rd.luks.uuid=${CRYPTROOT_UUID} resume=${SWAP_UUID} rootdelay=10 ro"
-
-    einfo "Target kernel cmdline:"
-    echo "$cmdline"
-
-    # Still useful for other tools
-    printf '%s\n' "$cmdline" > /etc/kernel/cmdline
-
-    local default_file="/etc/default/uefi-mkconfig"
-    local new_line
-
-    new_line=$(printf 'KERNEL_CONFIG="%%entry_id %%linux_name Linux %%kernel_version ; %s"' "$cmdline")
-
-    if [[ -f "$default_file" ]]; then
-        cp "$default_file" "${default_file}.bak" \
-            || ewarn "Could not back up $default_file"
-        sleep 5
-    fi
-
-    mkdir -p "$(dirname "$default_file")"
-
-    if [[ -f "$default_file" ]] && grep -q '^KERNEL_CONFIG=' "$default_file"; then
-        NEW_LINE="$new_line" awk '
-            /^KERNEL_CONFIG=/ {
-                print ENVIRON["NEW_LINE"]
-                next
-            }
-            { print }
-        ' "$default_file" > "${default_file}.tmp" \
-            || die "Could not rewrite $default_file"
-
-        mv "${default_file}.tmp" "$default_file" \
-            || die "Could not replace $default_file"
-    else
-        printf '%s\n' "$new_line" >> "$default_file" \
-            || die "Could not write $default_file"
-    fi
-
-    echo 'NO_NVRAM="yes"' >> /etc/default/uefi-mkconfig
-
-    einfo "Updated $default_file:"
-    cat "$default_file"
+    einfo "TEST ONLY NOW"
 }
 
 function enable_service() {
