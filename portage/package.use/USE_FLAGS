@@ -1,5 +1,5 @@
 # Kernel
-sys-kernel/installkernel efistub ugrd
+sys-kernel/installkernel -efistub ugrd
 
 # Core
 

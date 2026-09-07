@@ -39,6 +39,20 @@ function kernel_script() {
 	try ./scripts/config --enable CONFIG_KALLSYMS || die "module do not exit CONFIG_KALLSYMS"
 	try ./scripts/config --enable CONFIG_KALLSYMS_ALL || die "module do not exit CONFIG_KALLSYMS_ALL"
 
+    local root_uuid="${CHROOT_ROOT_UNDERLYING_UUID:-}"
+    local swap_uuid="${CHROOT_SWAP_UNDERLYING_UUID:-}"
+
+	# Enable the command line
+	./scripts/config --enable CONFIG_CMDLINE \
+                 --set-str CONFIG_CMDLINE "root=UUID=${root_uuid} rootfstype=btrfs resume=UUID=${swap_uuid} rw quiet loglevel=3"
+
+	# Make it append (so you can still boot with manual params if needed)
+	./scripts/config --enable CONFIG_CMDLINE_APPEND
+
+	# Verify the changes
+	./scripts/config --state CONFIG_CMDLINE
+	./scripts/config --state CONFIG_CMDLINE_APPEND
+
 	# =============================================================================
 	# 3. BTRFS Filesystem
 	# =============================================================================

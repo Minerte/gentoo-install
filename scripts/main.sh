@@ -97,10 +97,6 @@ function main_install_gentoo_in_chroot() {
     echo "Set root password"
     try passwd
     einfo "script completed"
-
-    einfo "Using sync command"
-    try sync
-    
 }
 
 function configure_system() {
@@ -155,7 +151,7 @@ function install_kernel() {
     try eselect kernel set 1 \
         || die "Could not select kernel source"
 
-    edit_uefi-mkconfig
+    # edit_uefi-mkconfig
 
     cd /usr/src/linux \
         || die "could not change to /usr/linux"
@@ -291,14 +287,46 @@ EOF
     einfo "ugrd configuration deployed to $config_file"
 }
 
-function edit_uefi-mkconfig() {
-    einfo "Editing uefi-mkconfig to include cryptsetup and resume"
+# function edit_uefi-mkconfig() {
+#     einfo "Editing uefi-mkconfig to include cryptsetup and resume"
 
-    # local cmdline="root=UUID=${ROOT_UUID} rootfstype=btrfs rootflags=subvol=${root_subvol} rd.luks.uuid=${CRYPTROOT_UUID} resume=${SWAP_UUID} ro"
-    # DISABLE_LABEL_LIMIT=true
+#     local uefi_config="/etc/default/uefi-mkconfig"
+    
+#     if [[ ! -f "$uefi_config" ]]; then
+#         die "uefi-mkconfig config file not found at $uefi_config"
+#     fi
 
-    einfo "TEST ONLY NOW"
-}
+#     # Get UUIDs from the environment or detect them
+#     local root_uuid="${CHROOT_ROOT_UNDERLYING_UUID:-}"
+#     local swap_uuid="${CHROOT_SWAP_UNDERLYING_UUID:-}"
+
+#     if [[ -z "$root_uuid" || -z "$swap_uuid" ]]; then
+#         ewarn "UUIDs not set in environment, using device mapper paths"
+#         local kernel_cmdline="root=/dev/mapper/cryptroot rootfstype=btrfs resume=/dev/mapper/cryptswap"
+#     else
+#         local kernel_cmdline="root=UUID=${root_uuid} rootfstype=btrfs resume=UUID=${swap_uuid}"
+#     fi
+
+#     # Update the KERNEL_CONFIG line
+#     if grep -q "^KERNEL_CONFIG=" "$uefi_config"; then
+#         sed -i "s|^KERNEL_CONFIG=\".*\"|KERNEL_CONFIG=\"%entry_id %linux_name Gentoo %kernel_version ; ${kernel_cmdline}\"|" "$uefi_config" \
+#             || die "Failed to update KERNEL_CONFIG in $uefi_config"
+#     elif grep -q "^#KERNEL_CONFIG=" "$uefi_config"; then
+#         sed -i "s|^#KERNEL_CONFIG=\".*\"|KERNEL_CONFIG=\"%entry_id %linux_name Gentoo %kernel_version ; ${kernel_cmdline}\"|" "$uefi_config" \
+#             || die "Failed to uncomment and set KERNEL_CONFIG in $uefi_config"
+#     else
+#         echo "KERNEL_CONFIG=\"%entry_id %linux_name Gentoo %kernel_version ; ${kernel_cmdline}\"" >> "$uefi_config" \
+#             || die "Failed to add KERNEL_CONFIG to $uefi_config"
+#     fi
+
+#     # Configure other settings
+#     sed -i 's/^ONLY_LATEST=.*/ONLY_LATEST=false/' "$uefi_config" || die "Failed to set ONLY_LATEST"
+#     sed -i 's/^REVERSE_ORDER=.*/REVERSE_ORDER=false/' "$uefi_config" || die "Failed to set REVERSE_ORDER"
+#     sed -i 's/^DISABLE_LABEL_LIMIT=.*/DISABLE_LABEL_LIMIT=true/' "$uefi_config" || die "Failed to set DISABLE_LABEL_LIMIT"
+
+#     einfo "uefi-mkconfig updated with kernel commandline: ${kernel_cmdline}"
+#     einfo "DISABLE_LABEL_LIMIT set to: true"
+# }
 
 function enable_service() {
     echo "Enable services"
@@ -307,7 +335,7 @@ function enable_service() {
     try rc-update add NetworkManager default || die "rc-update add NetworkManager default failed"
     try rc-update add chronyd default || die "rc-update add chronyd default failed"
     try rc-update add cronie default || die "rc-update add cronie default failed"
-    try rc-update add seatd default || die "rc-updtae add seatd default failed"
+    try rc-update add seatd default || die "rc-update add seatd default failed"
     try rc-update add hostname boot || die "rc-update add hostname boot"
     try rc-update add dbus default || die "rc-update add dbus default failed"
     try rc-update add keymaps boot || die "rc-update add keymaps boot failed"

@@ -1,0 +1,13 @@
+# Add your kernel commandline arguments following "; "
+# KERNEL_CONFIG="%entry_id %linux_name Linux %kernel_version ; example=test kernel=test cmdline=test arguments=test"
+KERNEL_CONFIG="%entry_id %linux_name Linux %kernel_version ;"
+
+# Turn on to only add efi files of the latest kernel version
+ONLY_LATEST=false
+
+# Turn on to reverse order in which entries are added
+REVERSE_ORDER=false
+
+# Entry label length limit of 60 characters for better compatibility with UEFI Firmware
+# Turn on to disable. Thorough testing is recommended before using entry labels longer than 60 characters
+DISABLE_LABEL_LIMIT=false
