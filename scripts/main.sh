@@ -194,87 +194,44 @@ function install_kernel() {
         || kver=$(cat /usr/src/linux/include/config/kernel.release 2>/dev/null) \
         || die "Could not detect kernel version from /usr/src/linux"
 
+    cp "/efi/EFI/Gentoo/initramfs-${kver}.img" \
+    "/efi/EFI/BOOT/initramfs.img"
+
     # cp /usr/src/linux/arch/x86_64/boot/bzImage "/efi/EFI/Gentoo/vmlinuz-${kver}.efi" \
     #     || die "Could not copy bzImage to /efi/EFI/Gentoo/vmlinuz-$kver.efi"
     # einfo "bzImage to /efi/EFI/Gentoo/vmlinuz-$kver.efi copied successfully"
     # sleep 5
 
-    echo "Installing kernel (triggers installkernel hooks -> ugrd -> efistub)"
+    echo "Installing kernel (triggers installkernel hooks -> ugrd -> uefi-mkconfig)"
     einfo "Deploying kernel postinst hook for USB fallback"
-
-    # Create the correct directory (install.d, not postinst.d)
-    mkdir -p /etc/kernel/install.d
-
-    # Create the hook script
-    cat > /etc/kernel/install.d/99-usb-fallback.install << 'EOF'
+    mkdir -p /etc/kernel/postinst.d
+    cat > /etc/kernel/postinst.d/99-usb-fallback << 'EOF'
 #!/bin/bash
 # Automatically update the UEFI removable-media fallback bootloader
 # whenever installkernel updates the system kernel.
-#
-# This hook runs AFTER all other installkernel plugins.
-# Arguments: (KERNEL_VERSION, KERNEL_IMAGE_PATH, [INITRAMFS_IMAGE_PATH])
 
 KVER="$1"
 KERNEL_IMAGE="$2"
-INITRAMFS_IMAGE="$3"
 
-# installkernel passes the image path as $2, but it might be relative
-# The kernel is usually installed to /efi/EFI/Gentoo/
-# or /efi/ depending on your layout
-
-# Try to find the actual kernel image
-if [[ -n "$KERNEL_IMAGE" && -f "$KERNEL_IMAGE" ]]; then
-    KERNEL_PATH="$KERNEL_IMAGE"
-elif [[ -f "/efi/EFI/Gentoo/vmlinuz-${KVER}.efi" ]]; then
-    KERNEL_PATH="/efi/EFI/Gentoo/vmlinuz-${KVER}.efi"
-elif [[ -f "/efi/EFI/Gentoo/linux-${KVER}.efi" ]]; then
-    KERNEL_PATH="/efi/EFI/Gentoo/linux-${KVER}.efi"
-elif [[ -f "/efi/EFI/Gentoo/kernel-${KVER}-gentoo-dist.efi" ]]; then
-    KERNEL_PATH="/efi/EFI/Gentoo/kernel-${KVER}-gentoo-dist.efi"
-elif [[ -f "/boot/vmlinuz-${KVER}" ]]; then
-    KERNEL_PATH="/boot/vmlinuz-${KVER}"
-elif [[ -f "/efi/EFI/Gentoo/vmlinuz-${KVER}" ]]; then
-    KERNEL_PATH="/efi/EFI/Gentoo/vmlinuz-${KVER}"
-else
-    echo "Warning: Could not find kernel image for ${KVER}" >&2
-    exit 0  # Don't fail the install, just warn
+# installkernel passes the image path as $2, but be defensive
+if [[ -z "$KERNEL_IMAGE" || ! -f "$KERNEL_IMAGE" ]]; then
+    KERNEL_IMAGE="/efi/EFI/Gentoo/vmlinuz-${KVER}.efi"
+    [[ -f "$KERNEL_IMAGE" ]] || KERNEL_IMAGE="/boot/vmlinuz-${KVER}"
 fi
 
-# Update the fallback boot path
-if [[ -f "$KERNEL_PATH" ]]; then
+if [[ -f "$KERNEL_IMAGE" ]]; then
     mkdir -p /efi/EFI/BOOT
-    cp -f "$KERNEL_PATH" /efi/EFI/BOOT/BOOTX64.EFI
+    cp -f "$KERNEL_IMAGE" /efi/EFI/BOOT/BOOTX64.EFI
     echo "USB fallback updated: /efi/EFI/BOOT/BOOTX64.EFI (${KVER})"
-    
-    # Also copy initramfs if it exists and we have one
-    if [[ -n "$INITRAMFS_IMAGE" && -f "$INITRAMFS_IMAGE" ]]; then
-        cp -f "$INITRAMFS_IMAGE" /efi/EFI/BOOT/initramfs-${KVER}.img
-        echo "Initramfs copied to fallback location"
-    fi
 else
     echo "Warning: kernel image not found for ${KVER}, fallback not updated" >&2
 fi
 EOF
-
-    chmod +x /etc/kernel/install.d/99-usb-fallback.install
-    einfo "Postinst hook installed at /etc/kernel/install.d/99-usb-fallback.install"
+    chmod +x /etc/kernel/postinst.d/99-usb-fallback
+    einfo "Postinst hook installed at /etc/kernel/postinst.d/99-usb-fallback"
 
     try make install || die "make install failed"
     sleep 10
-
-    # Copy to fallback path
-    if [[ -f "/efi/EFI/Gentoo/vmlinuz-${kver}.efi" ]]; then
-        mkdir -p /efi/EFI/BOOT
-        cp -f "/efi/EFI/Gentoo/vmlinuz-${kver}.efi" /efi/EFI/BOOT/BOOTX64.EFI
-        einfo "Manually updated USB fallback at /efi/EFI/BOOT/BOOTX64.EFI with embedded cmdline"
-        
-        # Verify the fallback file exists and has the right size
-        ls -la /efi/EFI/BOOT/BOOTX64.EFI
-        sleep 10
-    else
-        ewarn "Kernel image not found at /efi/EFI/Gentoo/vmlinuz-${kver}.efi"
-        sleep 10
-    fi
 
     cd \
         || die "Could not change to root dir"
