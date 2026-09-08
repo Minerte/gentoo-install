@@ -407,5 +407,15 @@ function export_disk_uuids() {
     export CHROOT_SWAP_UUID
     [[ -n "$CHROOT_SWAP_UUID" ]] || die "Failed to resolve swap UUID for /dev/mapper/$LUKS_SWAP_NAME"
 
+    # Get PARTUUIDs for the kernel command line
+    # Directly from the partition devices (more reliable)
+    CHROOT_ROOT_PARTUUID="$(blkid -s PARTUUID -o value "$ROOT_PART")"
+    export CHROOT_ROOT_PARTUUID
+    [[ -n "$CHROOT_ROOT_PARTUUID" ]] || die "Failed to resolve root PARTUUID for $ROOT_PART"
+    
+    CHROOT_SWAP_PARTUUID="$(blkid -s PARTUUID -o value "$SWAP_PART")"
+    export CHROOT_SWAP_PARTUUID
+    [[ -n "$CHROOT_SWAP_PARTUUID" ]] || die "Failed to resolve swap PARTUUID for $SWAP_PART"
+
     einfo "Disk UUIDs resolved successfully"
 }

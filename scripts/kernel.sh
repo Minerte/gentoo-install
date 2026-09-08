@@ -39,15 +39,22 @@ function kernel_script() {
 	try ./scripts/config --enable CONFIG_KALLSYMS || die "module do not exit CONFIG_KALLSYMS"
 	try ./scripts/config --enable CONFIG_KALLSYMS_ALL || die "module do not exit CONFIG_KALLSYMS_ALL"
 
-    local root_uuid="${CHROOT_ROOT_UNDERLYING_UUID:-}"
-    local swap_uuid="${CHROOT_SWAP_UNDERLYING_UUID:-}"
+	# Get PARTUUIDs from the environment
+	local root_partuuid="${CHROOT_ROOT_PARTUUID:-}"
+	local swap_partuuid="${CHROOT_SWAP_PARTUUID:-}"
 
-	# Enable the command line
-	./scripts/config --enable CONFIG_CMDLINE \
-                 --set-str CONFIG_CMDLINE "root=UUID=${root_uuid} rootfstype=btrfs resume=UUID=${swap_uuid} rw quiet loglevel=3"
+	# Debug: Ensure they're set
+	if [[ -z "$root_partuuid" || -z "$swap_partuuid" ]]; then
+    	ewarn "PARTUUIDs not set! Falling back to device mapper paths"
+    	./scripts/config --enable CONFIG_CMDLINE \
+                     --set-str CONFIG_CMDLINE "root=/dev/mapper/cryptroot rootfstype=btrfs resume=/dev/mapper/cryptswap rw quiet loglevel=3"
+	else
+    	# Enable the command line with PARTUUID
+    	./scripts/config --enable CONFIG_CMDLINE \
+                     --set-str CONFIG_CMDLINE "root=PARTUUID=${root_partuuid} rootfstype=btrfs resume=PARTUUID=${swap_partuuid} rw quiet loglevel=3"
+	fi
 
 	# IMPORTANT: Use OVERRIDE, not APPEND
-	# Without this, no command line is passed when booting BOOTX64.EFI directly
 	./scripts/config --enable CONFIG_CMDLINE_OVERRIDE
 
 	# Verify the changes
