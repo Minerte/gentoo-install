@@ -157,18 +157,30 @@ function install_kernel() {
         || die "could not change to /usr/linux"
 
     sleep 3
-    zcat /proc/config.gz > .config
-    make olddefconfig || die "make olddefconfig failed"
-    echo "olddefconfig dubug message only"
+    # zcat /proc/config.gz > .config
+    # make olddefconfig || die "make olddefconfig failed"
+    # echo "olddefconfig dubug message only"
+    try make defconfig || die "make defconfig failed"
+    echo "defconfig dubug message only"
     sleep 5
 
     kernel_script
 
+    echo "=== VERIFYING CONFIG_CMDLINE SETTINGS ==="
+    grep "^CONFIG_CMDLINE" .config
+    grep "^CONFIG_CMDLINE_OVERRIDE" .config
+    echo "========================================="
+    sleep 20
+
     sleep 5
-    make olddefconfig || die "make olddefconfig failed after scripts/config"
+    try make olddefconfig || die "make olddefconfig failed after scripts/config"
     sleep 5
 
+    echo "Cleaning previous build"
+    try make clean || die "make clean failed"
+
     echo "Compiling kernel with ${NPROC} jobs"
+    sleep 5
     try make -j"${NPROC}" || die "Kernel compilation failed"
     sleep 5
 
@@ -182,10 +194,10 @@ function install_kernel() {
         || kver=$(cat /usr/src/linux/include/config/kernel.release 2>/dev/null) \
         || die "Could not detect kernel version from /usr/src/linux"
 
-    cp /usr/src/linux/arch/x86_64/boot/bzImage "/efi/EFI/Gentoo/vmlinuz-${kver}.efi" \
-        || die "Could not copy bzImage to /efi/EFI/Gentoo/vmlinuz-$kver.efi"
-    einfo "bzImage to /efi/EFI/Gentoo/vmlinuz-$kver.efi copied successfully"
-    sleep 5
+    # cp /usr/src/linux/arch/x86_64/boot/bzImage "/efi/EFI/Gentoo/vmlinuz-${kver}.efi" \
+    #     || die "Could not copy bzImage to /efi/EFI/Gentoo/vmlinuz-$kver.efi"
+    # einfo "bzImage to /efi/EFI/Gentoo/vmlinuz-$kver.efi copied successfully"
+    # sleep 5
 
     echo "Installing kernel (triggers installkernel hooks -> ugrd -> efistub)"
     einfo "Deploying kernel postinst hook for USB fallback"
@@ -250,12 +262,18 @@ EOF
     try make install || die "make install failed"
     sleep 10
 
+    # Copy to fallback path
     if [[ -f "/efi/EFI/Gentoo/vmlinuz-${kver}.efi" ]]; then
         mkdir -p /efi/EFI/BOOT
         cp -f "/efi/EFI/Gentoo/vmlinuz-${kver}.efi" /efi/EFI/BOOT/BOOTX64.EFI
         einfo "Manually updated USB fallback at /efi/EFI/BOOT/BOOTX64.EFI with embedded cmdline"
+        
+        # Verify the fallback file exists and has the right size
+        ls -la /efi/EFI/BOOT/BOOTX64.EFI
+        sleep 10
     else
         ewarn "Kernel image not found at /efi/EFI/Gentoo/vmlinuz-${kver}.efi"
+        sleep 10
     fi
 
     cd \
