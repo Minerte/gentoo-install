@@ -187,14 +187,14 @@ function install_kernel() {
     einfo "bzImage to /efi/EFI/Gentoo/vmlinuz-$kver.efi copied successfully"
     sleep 5
 
-echo "Installing kernel (triggers installkernel hooks -> ugrd -> efistub)"
-einfo "Deploying kernel postinst hook for USB fallback"
+    echo "Installing kernel (triggers installkernel hooks -> ugrd -> efistub)"
+    einfo "Deploying kernel postinst hook for USB fallback"
 
-# Create the correct directory (install.d, not postinst.d)
-mkdir -p /etc/kernel/install.d
+    # Create the correct directory (install.d, not postinst.d)
+    mkdir -p /etc/kernel/install.d
 
-# Create the hook script
-cat > /etc/kernel/install.d/99-usb-fallback.install << 'EOF'
+    # Create the hook script
+    cat > /etc/kernel/install.d/99-usb-fallback.install << 'EOF'
 #!/bin/bash
 # Automatically update the UEFI removable-media fallback bootloader
 # whenever installkernel updates the system kernel.
@@ -244,10 +244,10 @@ else
 fi
 EOF
 
-chmod +x /etc/kernel/install.d/99-usb-fallback.install
-einfo "Postinst hook installed at /etc/kernel/install.d/99-usb-fallback.install"
+    chmod +x /etc/kernel/install.d/99-usb-fallback.install
+    einfo "Postinst hook installed at /etc/kernel/install.d/99-usb-fallback.install"
 
-try make install || die "make install failed"
+    try make install || die "make install failed"
     sleep 10
 
     if [[ -f "/efi/EFI/Gentoo/vmlinuz-${kver}.efi" ]]; then

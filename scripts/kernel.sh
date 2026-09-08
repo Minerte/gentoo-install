@@ -46,12 +46,14 @@ function kernel_script() {
 	./scripts/config --enable CONFIG_CMDLINE \
                  --set-str CONFIG_CMDLINE "root=UUID=${root_uuid} rootfstype=btrfs resume=UUID=${swap_uuid} rw quiet loglevel=3"
 
-	# Make it append (so you can still boot with manual params if needed)
-	./scripts/config --enable CONFIG_CMDLINE_APPEND
+	# IMPORTANT: Use OVERRIDE, not APPEND
+	# Without this, no command line is passed when booting BOOTX64.EFI directly
+	./scripts/config --enable CONFIG_CMDLINE_OVERRIDE
 
 	# Verify the changes
 	./scripts/config --state CONFIG_CMDLINE
-	./scripts/config --state CONFIG_CMDLINE_APPEND
+	./scripts/config --state CONFIG_CMDLINE_OVERRIDE
+	sleep 20
 
 	# =============================================================================
 	# 3. BTRFS Filesystem
