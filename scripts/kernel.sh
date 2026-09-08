@@ -41,7 +41,7 @@ function kernel_script() {
 
 	# Get PARTUUIDs from the environment
 	local kver
-    kver=$(make -C /usr/src/linux -s kernelrelease 2>/dev/null) \
+	kver=$(make -C /usr/src/linux -s kernelrelease 2>/dev/null) \
         || kver=$(cat /usr/src/linux/include/config/kernel.release 2>/dev/null) \
         || die "Could not detect kernel version from /usr/src/linux"
 
@@ -50,8 +50,8 @@ function kernel_script() {
 	cmdline="root=PARTUUID=${root_partuuid} rootfstype=btrfs resume=PARTUUID=${swap_partuuid} initrd=\EFI\BOOT\initramfs-${kver}.img rw quiet loglevel=3"
 
     # Enable the command line with PARTUUID
-    ./scripts/config --enable CONFIG_CMDLINE \
-                     --set-str CONFIG_CMDLINE "$cmdline"
+	./scripts/config --enable CONFIG_CMDLINE \
+				     --set-str CONFIG_CMDLINE "$cmdline"
 	# IMPORTANT: Use OVERRIDE, not APPEND
 	./scripts/config --enable CONFIG_CMDLINE_OVERRIDE
 
