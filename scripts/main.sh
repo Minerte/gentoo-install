@@ -33,29 +33,26 @@ function install_stage3() {
 }
 
 function main_install_gentoo_in_chroot() {
-    echo "we are in chroot"
+    einfo "we are in chroot"
     # Remove the root password, making the account accessible for automated
     # tasks during the period of installation.
     einfo "Clearing root password"
     passwd -d root \
 		|| die "Could not change root password"
 
-    echo "mounting $EFI_PART to /efi"
+    einfo "mounting $EFI_PART to /efi"
     mount /dev/disk/by-uuid/"$CHROOT_EFI_UUID" /efi || die "Could not mount EFI by UUID"
     einfo "EFI mounted at /efi"
-    mkdir -p /efi/EFI/Gentoo || die "Could not create /efi/EFI/Gentoo"
     mkdir -p /efi/EFI/BOOT || die "Could not create /efi/EFI/BOOT"
     einfo "/efi/Gentoo created"
 
-    # FIX: Ensure /efi is mounted on boot (GPG keys live here)
-    einfo "Adding EFI UUID TO SWAP"
-    if ! grep -q "/efi" /etc/fstab; then
-        echo "UUID=$CHROOT_EFI_UUID  /efi     vfat   defaults,noatime                                             0 2" >> /etc/fstab
-    fi
+    echo "Adding EFI UUID TO fstab"
+    echo "UUID=$CHROOT_EFI_UUID  /efi     vfat   defaults,noatime                                             0 2" >> /etc/fstab
 
-    echo "Syncing portage tree"
+    einfo "Syncing portage tree using emerge-webrsync"
     try emerge-webrsync
     sleep 5
+    einfo "Syncing portage tree using emerge --sync"
     try emerge --sync --quiet
 
     configure_system
@@ -66,7 +63,6 @@ function main_install_gentoo_in_chroot() {
 
     einfo "Adding cpuflag to make.conf"
     CPU_FLAGS=$(cpuid2cpuflags | cut -d' ' -f2-)
-    # 1. If the commented line exists, uncomment it and set the correct flags
     sed -i "s/^#CPU_FLAGS_X86=.*/CPU_FLAGS_X86=\"${CPU_FLAGS}\"/" /etc/portage/make.conf \
         || die "could not uncomment and set CPU_FLAGS_X86"
     echo "Uncommented and set CPU_FLAGS_X86 in make.conf"
@@ -158,7 +154,6 @@ function install_kernel() {
     sleep 5
 
     kernel_script
-    sleep 20
 
     sleep 5
     try make olddefconfig || die "make olddefconfig failed after scripts/config"
@@ -176,7 +171,6 @@ function install_kernel() {
     try make modules_install || die "make modules_install failed"
     sleep 5
 
-    echo "Installing kernel (triggers installkernel hooks -> ugrd -> uefi-mkconfig)"
     install_postinst_hook
 
     generate_initramfs
@@ -189,6 +183,7 @@ function install_kernel() {
 }
 
 function install_postinst_hook() {
+    echo "Installing kernel (triggers installkernel hooks -> ugrd -> uefi-mkconfig)"
     einfo "Deploying kernel postinst hook for USB fallback and initramfs"
     mkdir -p /etc/kernel/postinst.d
     cat > /etc/kernel/postinst.d/99-usb-fallback << 'EOF'
@@ -257,13 +252,13 @@ modules = [
     "ugrd.crypto.cryptsetup",
     "ugrd.crypto.gpg",
     "ugrd.fs.btrfs",
+    "ugrd.fs.cpio",
     "ugrd.fs.resume",
     "ugrd.kmod.nvme",
     "ugrd.kmod.usb"
 ]
 
 mount_timeout = 5
-
 keymap_file = "/usr/share/keymaps/i386/qwerty/sv-latin1.map.gz"
 late_resume = true
 

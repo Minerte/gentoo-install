@@ -19,7 +19,7 @@ function kernel_script() {
 	#   - FreeCAD / KiCad
 	#   - Gaming via Steam
 	#   - STM32 + Arduino development over USB
-	#   - Kernel version: 6.18.41 (gentoo-sources)
+	#   - Kernel version: 6.18.48 (gentoo-sources)
 	# =============================================================================
 
 	# =============================================================================
@@ -42,8 +42,12 @@ function kernel_script() {
 	local root_uuid="${CHROOT_ROOT_UUID:-}"
 	local swap_uuid="${CHROOT_SWAP_UUID:-}"
 
+	[[ -n "$root_uuid" ]] || die "Root UUID is empty"
+	[[ -n "$swap_uuid" ]] || die "Swap UUID is empty"
+
 	local cmdline
 	cmdline="root=UUID=${root_uuid} rootfstype=btrfs rootflags=subvol=activeroot resume=UUID=${swap_uuid} initrd=\\\\EFI\\\\BOOT\\\\ugrd.cpio rw quiet loglevel=3"
+	
 	try ./scripts/config --enable CONFIG_CMDLINE_BOOL
 	try ./scripts/config --set-str CONFIG_CMDLINE "$cmdline"
 	# IMPORTANT: Use OVERRIDE, not APPEND
@@ -52,7 +56,7 @@ function kernel_script() {
 	# Verify the changes
 	try ./scripts/config --state CONFIG_CMDLINE
 	try ./scripts/config --state CONFIG_CMDLINE_OVERRIDE
-	sleep 20
+	sleep 5
 
 	# =============================================================================
 	# 3. BTRFS Filesystem
