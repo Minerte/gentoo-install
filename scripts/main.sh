@@ -255,12 +255,12 @@ auto_mounts = ['/efi']
 uuid = "$efi_uuid"
 type = "vfat"
 
-[cryptsetup.cryptswap]
+[cryptsetup."$LUKS_SWAP_NAME"]
 uuid = "$swap_uuid"
 key_type = "gpg"
 key_file = "/efi/cryptswap_key.luks.gpg"
 
-[cryptsetup.cryptroot]
+[cryptsetup."$LUKS_ROOT_NAME"]
 uuid = "$root_uuid"
 key_type = "gpg"
 key_file = "/efi/cryptroot_key.luks.gpg"

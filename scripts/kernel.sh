@@ -39,17 +39,8 @@ function kernel_script() {
 	try ./scripts/config --enable CONFIG_KALLSYMS || die "module do not exit CONFIG_KALLSYMS"
 	try ./scripts/config --enable CONFIG_KALLSYMS_ALL || die "module do not exit CONFIG_KALLSYMS_ALL"
 
-	# Get PARTUUIDs from the environment
-	local kver
-	kver=$(make -C /usr/src/linux -s kernelrelease 2>/dev/null) \
-        || kver=$(cat /usr/src/linux/include/config/kernel.release 2>/dev/null) \
-        || die "Could not detect kernel version from /usr/src/linux"
-
-	local root_partuuid="${CHROOT_ROOT_PARTUUID:-}"
-	local swap_partuuid="${CHROOT_SWAP_PARTUUID:-}"
-
 	local cmdline
-	cmdline="root=PARTUUID=${root_partuuid} rootfstype=btrfs resume=PARTUUID=${swap_partuuid} initrd=\\\\EFI\\\\BOOT\\\\ugrd.cpio rw quiet loglevel=3"
+	cmdline="root=/dev/mapper/${LUKS_ROOT_NAME} rootfstype=btrfs resume=/dev/mapper/${LUKS_SWAP_NAME} initrd=\\\\EFI\\\\BOOT\\\\ugrd.cpio rw quiet loglevel=3"
 
 
     # Enable the command line with PARTUUID
