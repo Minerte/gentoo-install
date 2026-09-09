@@ -82,8 +82,6 @@ function main_install_gentoo_in_chroot() {
 
     install_kernel
 
-    generate_initramfs
-
     echo "Emerging tools"
     try emerge --verbose sys-block/io-scheduler-udev-rules \
         sys-apps/mlocate dev-vcs/git net-misc/networkmanager \
@@ -179,36 +177,56 @@ function install_kernel() {
     sleep 5
 
     echo "Installing kernel (triggers installkernel hooks -> ugrd -> uefi-mkconfig)"
-    einfo "Deploying kernel postinst hook for USB fallback"
-    mkdir -p /etc/kernel/postinst.d
-    cat > /etc/kernel/postinst.d/99-usb-fallback << 'EOF'
-#!/bin/bash
-# Automatically update the UEFI removable-media fallback bootloader
-# whenever installkernel updates the system kernel.
+    install_postinst_hook
 
-KVER="$1"
-KERNEL_IMAGE="$2"
-
-BOOTX64="/efi/EFI/BOOT/BOOTX64.EFI"
-
-if [[ -z "$KERNEL_IMAGE" || ! -f "$KERNEL_IMAGE" ]]; then
-    echo "Warning: kernel image not found for ${KVER}" >&2
-    exit 1
-fi
-
-mkdir -p "$(dirname "$BOOTX64")"
-cp -f "$KERNEL_IMAGE" "$BOOTX64"
-
-echo "USB fallback updated: $BOOTX64 (${KVER})"
-EOF
-    chmod +x /etc/kernel/postinst.d/99-usb-fallback
-    einfo "Postinst hook installed at /etc/kernel/postinst.d/99-usb-fallback"
+    generate_initramfs
 
     try make install || die "make install failed"
     sleep 10
 
     cd \
         || die "Could not change to root dir"
+}
+
+function install_postinst_hook() {
+    einfo "Deploying kernel postinst hook for USB fallback and initramfs"
+    mkdir -p /etc/kernel/postinst.d
+    cat > /etc/kernel/postinst.d/99-usb-fallback << 'EOF'
+#!/bin/bash
+# Automatically update the UEFI removable-media fallback bootloader
+# and regenerate initramfs whenever installkernel updates the system kernel.
+
+KVER="$1"
+KERNEL_IMAGE="$2"
+
+BOOTX64="/efi/EFI/BOOT/BOOTX64.EFI"
+INITRAMFS_PATH="/efi/EFI/BOOT/ugrd.cpio"
+
+if [[ -z "$KERNEL_IMAGE" || ! -f "$KERNEL_IMAGE" ]]; then
+    echo "Warning: kernel image not found for ${KVER}" >&2
+    exit 1
+fi
+
+# Update the kernel image
+mkdir -p "$(dirname "$BOOTX64")"
+cp -f "$KERNEL_IMAGE" "$BOOTX64"
+echo "USB fallback kernel updated: $BOOTX64 (${KVER})"
+
+# Regenerate initramfs for this kernel
+if command -v ugrd >/dev/null 2>&1; then
+    echo "Regenerating initramfs for kernel ${KVER}"
+    if ugrd --kver "${KVER}" "${INITRAMFS_PATH}"; then
+        echo "Initramfs updated: ${INITRAMFS_PATH} (${KVER})"
+    else
+        echo "ERROR: Failed to regenerate initramfs for ${KVER}" >&2
+        exit 1
+    fi
+else
+    echo "WARNING: ugrd command not found, initramfs not regenerated" >&2
+fi
+EOF
+    chmod +x /etc/kernel/postinst.d/99-usb-fallback
+    einfo "Postinst hook installed at /etc/kernel/postinst.d/99-usb-fallback"
 }
 
 function generate_initramfs() {
@@ -266,15 +284,6 @@ key_type = "gpg"
 key_file = "/efi/cryptroot_key.luks.gpg"
 EOF
 
-    local kver
-    kver=$(make -C /usr/src/linux -s kernelrelease 2>/dev/null) \
-        || kver=$(cat /usr/src/linux/include/config/kernel.release 2>/dev/null) \
-        || die "Could not detect kernel version from /usr/src/linux"
-
-    einfo "Generating initramfs for kernel version $kver"
-    try ugrd --kver "$kver" /efi/EFI/BOOT/ugrd.cpio
-    einfo "initramfs deployed to /efi/EFI/BOOT/ugrd.cpio"
-
     einfo "ugrd configuration deployed to $config_file"
 }
 
@@ -292,6 +301,3 @@ function enable_service() {
 
     try rc-service NetworkManager start || die "rc-service NetworkManager start failed"
 }
-
-
-    echo "Installing kernel (triggers installkernel hooks -> ugrd ->
