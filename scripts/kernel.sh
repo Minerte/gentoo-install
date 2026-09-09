@@ -39,9 +39,11 @@ function kernel_script() {
 	try ./scripts/config --enable CONFIG_KALLSYMS || die "module do not exit CONFIG_KALLSYMS"
 	try ./scripts/config --enable CONFIG_KALLSYMS_ALL || die "module do not exit CONFIG_KALLSYMS_ALL"
 
-	local cmdline
-	cmdline="root=/dev/mapper/${LUKS_ROOT_NAME} rootfstype=btrfs resume=/dev/mapper/${LUKS_SWAP_NAME} initrd=\\\\EFI\\\\BOOT\\\\ugrd.cpio rw quiet loglevel=3"
+	local root_uuid="${CHROOT_ROOT_UUID:-}"
+	local swap_uuid="${CHROOT_SWAP_UUID:-}"
 
+	local cmdline
+	cmdline="root=UUID=${root_uuid} rootfstype=btrfs rootflags=subvol=activeroot resume=UUID=${swap_uuid} initrd=\\\\EFI\\\\BOOT\\\\ugrd.cpio rw quiet loglevel=3"
 
     # Enable the command line with PARTUUID
 	try ./scripts/config --enable CONFIG_CMDLINE_BOOL
