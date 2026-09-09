@@ -80,9 +80,9 @@ function main_install_gentoo_in_chroot() {
         sys-fs/e2fsprogs sys-fs/dosfstools app-crypt/gnupg \
         app-arch/zstd sys-boot/efibootmgr sys-apps/util-linux
 
-    generate_initramfs
-
     install_kernel
+
+    generate_initramfs
 
     echo "Emerging tools"
     try emerge --verbose sys-block/io-scheduler-udev-rules \
@@ -136,74 +136,6 @@ EOF
 	try eselect locale set "$LOCALE"
 
     env_update
-}
-
-function generate_initramfs() {
-    echo "Compiling initramfs"
-    try emerge --verbose sys-kernel/ugrd
-
-    echo  "Generating initramfs"
-    sleep 5
-
-    local efi_uuid="${CHROOT_EFI_UUID:-}"
-    local root_uuid="${CHROOT_ROOT_UNDERLYING_UUID:-}"
-    local swap_uuid="${CHROOT_SWAP_UNDERLYING_UUID:-}"
-
-    [[ -n "$efi_uuid" ]] || die "EFI UUID is empty"
-    [[ -n "$root_uuid" ]] || die "Root UUID is empty"
-    [[ -n "$swap_uuid" ]] || die "Swap UUID is empty"
-
-    # Check for GPG keys in /efi (where fulldisk_encryption.sh actually puts them)
-    [[ -f "/efi/cryptroot_key.luks.gpg" ]] || die "GPG root key not found at /efi/cryptroot_key.luks.gpg"
-
-    local config_file="/etc/ugrd/config.toml"
-    mkdir -p "$(dirname "$config_file")"
-
-    cat > "$config_file" << EOF
-modules = [
-    "ugrd.base.console",
-    "ugrd.base.keymap",
-    "ugrd.crypto.cryptsetup",
-    "ugrd.crypto.gpg",
-    "ugrd.fs.btrfs",
-    "ugrd.fs.resume",
-    "ugrd.kmod.nvme",
-    "ugrd.kmod.usb"
-]
-
-mount_timeout = 5
-
-keymap_file = "/usr/share/keymaps/i386/qwerty/sv-latin1.map.gz"
-late_resume = true
-
-auto_mounts = ['/efi']
-
-[mounts.efi]
-uuid = "$efi_uuid"
-type = "vfat"
-
-[cryptsetup.cryptswap]
-uuid = "$swap_uuid"
-key_type = "gpg"
-key_file = "/efi/cryptswap_key.luks.gpg"
-
-[cryptsetup.cryptroot]
-uuid = "$root_uuid"
-key_type = "gpg"
-key_file = "/efi/cryptroot_key.luks.gpg"
-EOF
-
-    local kver
-    kver=$(make -C /usr/src/linux -s kernelrelease 2>/dev/null) \
-        || kver=$(cat /usr/src/linux/include/config/kernel.release 2>/dev/null) \
-        || die "Could not detect kernel version from /usr/src/linux"
-
-    einfo "Generating initramfs for kernel version $kver"
-    try ugrd --kver "$kver" /efi/EFI/BOOT/initramfs-"$kver".img
-    einfo "Decompressing initramfs to /usr/src/initramfs.cpio"
-    try xz -dc /efi/EFI/BOOT/initramfs-"$kver".img > /usr/src/initramfs.cpio
-
-    einfo "ugrd configuration deployed to $config_file and initramfs decompressed to /usr/src/initramfs.cpio"
 }
 
 function install_kernel() {
@@ -277,6 +209,74 @@ EOF
 
     cd \
         || die "Could not change to root dir"
+}
+
+function generate_initramfs() {
+    echo "Compiling initramfs"
+    try emerge --verbose sys-kernel/ugrd
+
+    echo  "Generating initramfs"
+    sleep 5
+
+    local efi_uuid="${CHROOT_EFI_UUID:-}"
+    local root_uuid="${CHROOT_ROOT_UNDERLYING_UUID:-}"
+    local swap_uuid="${CHROOT_SWAP_UNDERLYING_UUID:-}"
+
+    [[ -n "$efi_uuid" ]] || die "EFI UUID is empty"
+    [[ -n "$root_uuid" ]] || die "Root UUID is empty"
+    [[ -n "$swap_uuid" ]] || die "Swap UUID is empty"
+
+    # Check for GPG keys in /efi (where fulldisk_encryption.sh actually puts them)
+    [[ -f "/efi/cryptroot_key.luks.gpg" ]] || die "GPG root key not found at /efi/cryptroot_key.luks.gpg"
+
+    local config_file="/etc/ugrd/config.toml"
+    mkdir -p "$(dirname "$config_file")"
+
+    cat > "$config_file" << EOF
+modules = [
+    "ugrd.base.console",
+    "ugrd.base.keymap",
+    "ugrd.crypto.cryptsetup",
+    "ugrd.crypto.gpg",
+    "ugrd.fs.btrfs",
+    "ugrd.fs.resume",
+    "ugrd.kmod.nvme",
+    "ugrd.kmod.usb"
+]
+
+mount_timeout = 5
+
+keymap_file = "/usr/share/keymaps/i386/qwerty/sv-latin1.map.gz"
+late_resume = true
+
+auto_mounts = ['/efi']
+
+[mounts.efi]
+uuid = "$efi_uuid"
+type = "vfat"
+
+[cryptsetup.cryptswap]
+uuid = "$swap_uuid"
+key_type = "gpg"
+key_file = "/efi/cryptswap_key.luks.gpg"
+
+[cryptsetup.cryptroot]
+uuid = "$root_uuid"
+key_type = "gpg"
+key_file = "/efi/cryptroot_key.luks.gpg"
+EOF
+
+    local kver
+    kver=$(make -C /usr/src/linux -s kernelrelease 2>/dev/null) \
+        || kver=$(cat /usr/src/linux/include/config/kernel.release 2>/dev/null) \
+        || die "Could not detect kernel version from /usr/src/linux"
+
+    einfo "Generating initramfs for kernel version $kver"
+    try ugrd --kver "$kver" /efi/EFI/BOOT/initramfs-"$kver".img
+    einfo "Decompressing initramfs to /usr/src/initramfs.cpio"
+    try xz -dc /efi/EFI/BOOT/initramfs-"$kver".img > /usr/src/initramfs.cpio
+
+    einfo "ugrd configuration deployed to $config_file and initramfs decompressed to /usr/src/initramfs.cpio"
 }
 
 function enable_service() {
