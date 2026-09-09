@@ -252,7 +252,6 @@ modules = [
     "ugrd.crypto.cryptsetup",
     "ugrd.crypto.gpg",
     "ugrd.fs.btrfs",
-    "ugrd.fs.cpio",
     "ugrd.fs.resume",
     "ugrd.kmod.nvme",
     "ugrd.kmod.usb"
