@@ -47,7 +47,7 @@ function kernel_script() {
 
 	local cmdline
 	cmdline="root=UUID=${root_uuid} rootfstype=btrfs rootflags=subvol=activeroot resume=UUID=${swap_uuid} initrd=\\\\EFI\\\\BOOT\\\\ugrd.cpio rw quiet loglevel=3"
-	
+
 	try ./scripts/config --enable CONFIG_CMDLINE_BOOL
 	try ./scripts/config --set-str CONFIG_CMDLINE "$cmdline"
 	# IMPORTANT: Use OVERRIDE, not APPEND
