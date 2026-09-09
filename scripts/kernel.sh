@@ -47,17 +47,22 @@ function kernel_script() {
 
 	local root_partuuid="${CHROOT_ROOT_PARTUUID:-}"
 	local swap_partuuid="${CHROOT_SWAP_PARTUUID:-}"
+
+	local cmdline
 	cmdline="root=PARTUUID=${root_partuuid} rootfstype=btrfs resume=PARTUUID=${swap_partuuid} initrd=\EFI\BOOT\initramfs-${kver}.img rw quiet loglevel=3"
 
+
     # Enable the command line with PARTUUID
-	./scripts/config --enable CONFIG_CMDLINE \
-				     --set-str CONFIG_CMDLINE "$cmdline"
+	try ./scripts/config --enable CONFIG_CMDLINE_BOOL
+	try ./scripts/config --set-str CONFIG_CMDLINE "$cmdline"
 	# IMPORTANT: Use OVERRIDE, not APPEND
-	./scripts/config --enable CONFIG_CMDLINE_OVERRIDE
+	try ./scripts/config --enable CONFIG_CMDLINE_OVERRIDE
 
 	# Verify the changes
-	./scripts/config --state CONFIG_CMDLINE
-	./scripts/config --state CONFIG_CMDLINE_OVERRIDE
+	try ./scripts/config --state CONFIG_CMDLINE
+	try ./scripts/config --state CONFIG_CMDLINE_OVERRIDE
+
+	try ./scripts/config --set-str CONFIG_INITRAMFS_SOURCE "/usr/src/initramfs.cpio" || die "Could not set CONFIG_INITRAMFS_SOURCE"
 	sleep 20
 
 	# =============================================================================
@@ -65,8 +70,6 @@ function kernel_script() {
 	# =============================================================================
 	try ./scripts/config --enable CONFIG_BTRFS_FS || die "module do not exit CONFIG_BTRFS_FS"
 	try ./scripts/config --enable CONFIG_BTRFS_FS_POSIX_ACL || die "module do not exit CONFIG_BTRFS_FS_POSIX_ACL"
-	try ./scripts/config --enable CONFIG_BTRFS_FS_CHECK_INTEGRITY || die "module do not exit CONFIG_BTRFS_FS_CHECK_INTEGRITY"
-	try ./scripts/config --enable CONFIG_BTRFS_FS_COMPRESS || die "module do not exit CONFIG_BTRFS_FS_COMPRESS"
 
 	# =============================================================================
 	# 4. ZSTD Compression (for BTRFS and initrd)
@@ -125,16 +128,6 @@ function kernel_script() {
 	# =============================================================================
 	try ./scripts/config --enable CONFIG_NVME_CORE || die "module do not exit CONFIG_NVME_CORE"
 	try ./scripts/config --enable CONFIG_BLK_DEV_NVME || die "module do not exit CONFIG_BLK_DEV_NVME"
-	try ./scripts/config --module CONFIG_NVME_FABRICS || die "module do not exit CONFIG_NVME_FABRICS"
-	try ./scripts/config --module CONFIG_NVME_FC || die "module do not exit CONFIG_NVME_FC"
-	try ./scripts/config --module CONFIG_NVME_TCP || die "module do not exit CONFIG_NVME_TCP"
-	try ./scripts/config --module CONFIG_NVME_KEYRING || die "module do not exit CONFIG_NVME_KEYRING"
-	try ./scripts/config --enable CONFIG_NVME_AUTH || die "module do not exit CONFIG_NVME_AUTH"
-	try ./scripts/config --module CONFIG_NVME_TARGET || die "module do not exit CONFIG_NVME_TARGET"
-	try ./scripts/config --module CONFIG_NVME_TARGET_LOOP || die "module do not exit CONFIG_NVME_TARGET_LOOP"
-	try ./scripts/config --module CONFIG_NVME_TARGET_FC || die "module do not exit CONFIG_NVME_TARGET_FC"
-	try ./scripts/config --module CONFIG_NVME_TARGET_TCP || die "module do not exit CONFIG_NVME_TARGET_TCP"
-	try ./scripts/config --enable CONFIG_NVME_TARGET_AUTH || die "module do not exit CONFIG_NVME_TARGET_AUTH"
 
 	# =============================================================================
 	# 7. SATA / SCSI (3x SSD)
@@ -144,10 +137,6 @@ function kernel_script() {
 	try ./scripts/config --enable CONFIG_SATA_AHCI_PLATFORM || die "module do not exit CONFIG_SATA_AHCI_PLATFORM"
 	try ./scripts/config --enable CONFIG_SCSI || die "module do not exit CONFIG_SCSI"
 	try ./scripts/config --enable CONFIG_BLK_DEV_SD || die "module do not exit CONFIG_BLK_DEV_SD"
-	# Additional storage controllers for AMD X670E
-	try ./scripts/config --enable CONFIG_SATA_HIGHBANK || die "module do not exit CONFIG_SATA_HIGHBANK"
-	try ./scripts/config --enable CONFIG_SATA_ACARD_AHCI || die "module do not exit CONFIG_SATA_ACARD_AHCI"
-	try ./scripts/config --enable CONFIG_PATA_AMD || die "module do not exit CONFIG_PATA_AMD"
 
 	# =============================================================================
 	# 8. DAX (Direct Access) support
@@ -162,7 +151,6 @@ function kernel_script() {
 	try ./scripts/config --enable CONFIG_EFI_PARTITION || die "module do not exit CONFIG_EFI_PARTITION"
 	try ./scripts/config --enable CONFIG_EFI_RUNTIME_MAP || die "module do not exit CONFIG_EFI_RUNTIME_MAP"
 	try ./scripts/config --enable CONFIG_EFI_STUB || die "module do not exit CONFIG_EFI_STUB"
-	try ./scripts/config --enable CONFIG_EFI_VARS || die "module do not exit CONFIG_EFI_VARS"
 	try ./scripts/config --enable CONFIG_PROC_FS || die "module do not exit CONFIG_PROC_FS"
 
 	# =============================================================================
@@ -191,7 +179,6 @@ function kernel_script() {
 
 	# DRM core support.
 	try ./scripts/config --enable CONFIG_DRM || die "Failed to set CONFIG_DRM"
-	try ./scripts/config --enable CONFIG_DRM_ATOMIC || die "Failed to set CONFIG_DRM_ATOMIC"
 	try ./scripts/config --enable CONFIG_DRM_KMS_HELPER || die "Failed to set CONFIG_DRM_KMS_HELPER"
 	try ./scripts/config --enable CONFIG_DRM_FBDEV_EMULATION || die "Failed to set CONFIG_DRM_FBDEV_EMULATION"
 
@@ -233,8 +220,6 @@ function kernel_script() {
 	# 13. USB Storage (if GPG keyfile is on USB)
 	# =============================================================================
 	try ./scripts/config --enable CONFIG_USB_STORAGE || die "module do not exit CONFIG_USB_STORAGE"
-	try ./scripts/config --enable CONFIG_USB_STORAGE_UAS || die "module do not exit CONFIG_USB_STORAGE_UAS"
-	try ./scripts/config --enable CONFIG_UAS || die "module do not exit CONFIG_UAS"
 
 	# =============================================================================
 	# 14. HID / Input (keyboard for typing GPG passphrase in initramfs)
@@ -263,8 +248,7 @@ function kernel_script() {
 	try ./scripts/config --enable CONFIG_AMD_PMC || die "module do not exit CONFIG_AMD_PMC"
 
 	# AMD P-State driver (preferred for Zen 4/5)
-	try ./scripts/config --enable CONFIG_AMD_PSTATE || die "module do not exit CONFIG_AMD_PSTATE"
-	try ./scripts/config --enable CONFIG_AMD_PSTATE_UT || die "module do not exit CONFIG_AMD_PSTATE_UT"
+	try ./scripts/config --enable CONFIG_X86_AMD_PSTATE_UT || die "module do not exit CONFIG_AMD_PSTATE_UT"
 	try ./scripts/config --enable CONFIG_X86_AMD_PSTATE || die "module do not exit CONFIG_X86_AMD_PSTATE"
 
 	# CPU temperature monitoring
@@ -274,7 +258,7 @@ function kernel_script() {
 	# Super I/O and ASUS's WMI/EC interfaces, not K10TEMP.
 	try ./scripts/config --enable CONFIG_HWMON || die "module do not exit CONFIG_HWMON"
 	try ./scripts/config --module CONFIG_SENSORS_NCT6775 || die "module do not exit CONFIG_SENSORS_NCT6775"
-	try ./scripts/config --module CONFIG_SENSORS_ASUS_WMI || die "module do not exit CONFIG_SENSORS_ASUS_WMI"
+	try ./scripts/config --module CONFIG_ACPI_WMI || die "module do not exit CONFIG_ACPI_WMI"
 	try ./scripts/config --module CONFIG_SENSORS_ASUS_EC || die "module do not exit CONFIG_SENSORS_ASUS_EC"
 
 	# IOMMU (critical for X670E chipset and VFIO passthrough)
@@ -318,24 +302,7 @@ function kernel_script() {
 	try ./scripts/config --enable CONFIG_KVM || die "module do not exit CONFIG_KVM"
 	try ./scripts/config --enable CONFIG_KVM_AMD || die "module do not exit CONFIG_KVM_AMD"
 	try ./scripts/config --enable CONFIG_KVM_AMD_SEV || die "module do not exit CONFIG_KVM_AMD_SEV"
-	try ./scripts/config --enable CONFIG_KVM_VFIO || die "module do not exit CONFIG_KVM_VFIO"
-	try ./scripts/config --enable CONFIG_KVM_GENERIC_DIRTYLOG_READ_PROTECT || die "module do not exit CONFIG_KVM_GENERIC_DIRTYLOG_READ_PROTECT"
-	try ./scripts/config --enable CONFIG_KVM_COMPAT || die "module do not exit CONFIG_KVM_COMPAT"
-	try ./scripts/config --enable CONFIG_KVM_ASYNC_PF || die "module do not exit CONFIG_KVM_ASYNC_PF"
-	try ./scripts/config --enable CONFIG_KVM_MMIO || die "module do not exit CONFIG_KVM_MMIO"
-	try ./scripts/config --enable CONFIG_KVM_SW_PROTECTED_VM || die "module do not exit CONFIG_KVM_SW_PROTECTED_VM"
-	try ./scripts/config --enable CONFIG_KVM_XFER_TO_GUEST_WORK || die "module do not exit CONFIG_KVM_XFER_TO_GUEST_WORK"
-
-	# KVM prerequisites (auto-selected by above, but explicit is safer)
-	try ./scripts/config --enable CONFIG_HAVE_KVM || die "module do not exit CONFIG_HAVE_KVM"
-	try ./scripts/config --enable CONFIG_HAVE_KVM_IRQCHIP || die "module do not exit CONFIG_HAVE_KVM_IRQCHIP"
-	try ./scripts/config --enable CONFIG_HAVE_KVM_IRQFD || die "module do not exit CONFIG_HAVE_KVM_IRQFD"
-	try ./scripts/config --enable CONFIG_HAVE_KVM_IRQ_ROUTING || die "module do not exit CONFIG_HAVE_KVM_IRQ_ROUTING"
-	try ./scripts/config --enable CONFIG_HAVE_KVM_EVENTFD || die "module do not exit CONFIG_HAVE_KVM_EVENTFD"
-	try ./scripts/config --enable CONFIG_HAVE_KVM_MSI || die "module do not exit CONFIG_HAVE_KVM_MSI"
-	try ./scripts/config --enable CONFIG_HAVE_KVM_CPU_RELAX_INTERCEPT || die "module do not exit CONFIG_HAVE_KVM_CPU_RELAX_INTERCEPT"
-	try ./scripts/config --enable CONFIG_HAVE_KVM_IRQ_BYPASS || die "module do not exit CONFIG_HAVE_KVM_IRQ_BYPASS"
-	try ./scripts/config --enable CONFIG_HAVE_KVM_NO_POLL || die "module do not exit CONFIG_HAVE_KVM_NO_POLL"
+	try ./scripts/config --enable CONFIG_VIRT_XFER_TO_GUEST_WORK || die "module do not exit CONFIG_VIRT_XFER_TO_GUEST_WORK"
 
 	# Nested virtualization is enabled via module parameter:
 	#   echo "options kvm_amd nested=1" > /etc/modprobe.d/kvm.conf
@@ -347,7 +314,6 @@ function kernel_script() {
 	try ./scripts/config --enable CONFIG_VFIO || die "module do not exit CONFIG_VFIO"
 	try ./scripts/config --enable CONFIG_VFIO_PCI || die "module do not exit CONFIG_VFIO_PCI"
 	try ./scripts/config --enable CONFIG_VFIO_PCI_VGA || die "module do not exit CONFIG_VFIO_PCI_VGA"
-	try ./scripts/config --enable CONFIG_VFIO_PCI_MMAP || die "module do not exit CONFIG_VFIO_PCI_MMAP"
 	try ./scripts/config --enable CONFIG_VFIO_PCI_INTX || die "module do not exit CONFIG_VFIO_PCI_INTX"
 	try ./scripts/config --enable CONFIG_VFIO_IOMMU_TYPE1 || die "module do not exit CONFIG_VFIO_IOMMU_TYPE1"
 	try ./scripts/config --enable CONFIG_VFIO_VIRQFD || die "module do not exit CONFIG_VFIO_VIRQFD"
@@ -355,7 +321,6 @@ function kernel_script() {
 
 	# Mediated devices (for vGPU / Intel GVT-g / NVIDIA vGPU if ever needed)
 	try ./scripts/config --enable CONFIG_VFIO_MDEV || die "module do not exit CONFIG_VFIO_MDEV"
-	try ./scripts/config --enable CONFIG_VFIO_MDEV_DEVICE || die "module do not exit CONFIG_VFIO_MDEV_DEVICE"
 
 	# IOMMU user-space API (new in 6.6+, used by modern QEMU)
 	try ./scripts/config --enable CONFIG_IOMMUFD || die "module do not exit CONFIG_IOMMUFD"
@@ -414,8 +379,8 @@ function kernel_script() {
 	try ./scripts/config --module CONFIG_INPUT_UINPUT || die "module do not exit CONFIG_INPUT_UINPUT"
 	try ./scripts/config --enable CONFIG_INPUT_JOYDEV || die "module do not exit CONFIG_INPUT_JOYDEV"
 	try ./scripts/config --enable CONFIG_JOYSTICK_XPAD || die "module do not exit CONFIG_JOYSTICK_XPAD"
-	try ./scripts/config --enable CONFIG_HID_SONY || die "module do not exit CONFIG_HID_SONY"
-	try ./scripts/config --enable CONFIG_HID_NINTENDO || die "module do not exit CONFIG_HID_NINTENDO"
+	try ./scripts/config --enable CONFIG_NEW_LEDS || die "module do not exit CONFIG_NEW_LEDS"
+	try ./scripts/config --enable CONFIG_LEDS_CLASS || die "module do not exit CONFIG_LEDS_CLASS"
 	# Add/remove HID_* controller drivers above to match whatever controllers
 	# you actually own; these are just the common ones.
 
@@ -618,9 +583,9 @@ function kernel_script() {
 	# =============================================================================
 	# 34. Security / Hardening (standard for modern kernels)
 	# =============================================================================
-	try ./scripts/config --enable CONFIG_PAGE_TABLE_ISOLATION || die "module do not exit CONFIG_PAGE_TABLE_ISOLATION"
-	try ./scripts/config --enable CONFIG_RETPOLINE || die "module do not exit CONFIG_RETPOLINE"
-	try ./scripts/config --enable CONFIG_SPECULATION_STORE_BYPASS || die "module do not exit CONFIG_SPECULATION_STORE_BYPASS"
+	try ./scripts/config --enable CONFIG_MITIGATION_PAGE_TABLE_ISOLATION || die "module do not exit CONFIG_MITIGATION_PAGE_TABLE_ISOLATION"
+	try ./scripts/config --enable CONFIG_MITIGATION_RETPOLINE || die "module do not exit CONFIG_MITIGATION_RETPOLINE"
+	try ./scripts/config --enable CONFIG_MITIGATION_SSB || die "module do not exit CONFIG_MITIGATION_SSB"
 	try ./scripts/config --enable CONFIG_HARDENED_USERCOPY || die "module do not exit CONFIG_HARDENED_USERCOPY"
 	try ./scripts/config --enable CONFIG_STACKPROTECTOR || die "module do not exit CONFIG_STACKPROTECTOR"
 	try ./scripts/config --enable CONFIG_STACKPROTECTOR_STRONG || die "module do not exit CONFIG_STACKPROTECTOR_STRONG"

@@ -138,105 +138,6 @@ EOF
     env_update
 }
 
-function install_kernel() {
-    echo "compile kernel"
-    try emerge --oneshot --nodeps app-arch/cpio
-    try emerge --verbose sys-kernel/installkernel sys-kernel/linux-firmware \
-        sys-firmware/nvidia-firmware sys-firmware/sof-firmware
-
-    try emerge --verbose sys-kernel/gentoo-sources sys-apps/pciutils \
-        app-portage/gentoolkit
-
-    echo "Selecting kernel to set 1"
-    try eselect kernel set 1 \
-        || die "Could not select kernel source"
-
-    # edit_uefi-mkconfig
-
-    cd /usr/src/linux \
-        || die "could not change to /usr/linux"
-
-    sleep 3
-    # zcat /proc/config.gz > .config
-    # make olddefconfig || die "make olddefconfig failed"
-    # echo "olddefconfig dubug message only"
-    try make defconfig || die "make defconfig failed"
-    echo "defconfig dubug message only"
-    sleep 5
-
-    kernel_script
-
-    echo "=== VERIFYING CONFIG_CMDLINE SETTINGS ==="
-    grep "^CONFIG_CMDLINE" .config
-    grep "^CONFIG_CMDLINE_OVERRIDE" .config
-    echo "========================================="
-    sleep 20
-
-    sleep 5
-    try make olddefconfig || die "make olddefconfig failed after scripts/config"
-    sleep 5
-
-    echo "Cleaning previous build"
-    try make clean || die "make clean failed"
-
-    echo "Compiling kernel with ${NPROC} jobs"
-    sleep 5
-    try make -j"${NPROC}" || die "Kernel compilation failed"
-    sleep 5
-
-    echo "Installing modules"
-    try make modules_install || die "make modules_install failed"
-    sleep 5
-
-    # Determine the kernel version
-    local kver
-    kver=$(make -C /usr/src/linux -s kernelrelease 2>/dev/null) \
-        || kver=$(cat /usr/src/linux/include/config/kernel.release 2>/dev/null) \
-        || die "Could not detect kernel version from /usr/src/linux"
-
-    cp "/efi/EFI/Gentoo/initramfs-${kver}.img" \
-    "/efi/EFI/BOOT/initramfs.img"
-
-    # cp /usr/src/linux/arch/x86_64/boot/bzImage "/efi/EFI/Gentoo/vmlinuz-${kver}.efi" \
-    #     || die "Could not copy bzImage to /efi/EFI/Gentoo/vmlinuz-$kver.efi"
-    # einfo "bzImage to /efi/EFI/Gentoo/vmlinuz-$kver.efi copied successfully"
-    # sleep 5
-
-    echo "Installing kernel (triggers installkernel hooks -> ugrd -> uefi-mkconfig)"
-    einfo "Deploying kernel postinst hook for USB fallback"
-    mkdir -p /etc/kernel/postinst.d
-    cat > /etc/kernel/postinst.d/99-usb-fallback << 'EOF'
-#!/bin/bash
-# Automatically update the UEFI removable-media fallback bootloader
-# whenever installkernel updates the system kernel.
-
-KVER="$1"
-KERNEL_IMAGE="$2"
-
-# installkernel passes the image path as $2, but be defensive
-if [[ -z "$KERNEL_IMAGE" || ! -f "$KERNEL_IMAGE" ]]; then
-    KERNEL_IMAGE="/efi/EFI/Gentoo/vmlinuz-${KVER}.efi"
-    [[ -f "$KERNEL_IMAGE" ]] || KERNEL_IMAGE="/boot/vmlinuz-${KVER}"
-fi
-
-if [[ -f "$KERNEL_IMAGE" ]]; then
-    mkdir -p /efi/EFI/BOOT
-    cp -f "$KERNEL_IMAGE" /efi/EFI/BOOT/BOOTX64.EFI
-    echo "USB fallback updated: /efi/EFI/BOOT/BOOTX64.EFI (${KVER})"
-else
-    echo "Warning: kernel image not found for ${KVER}, fallback not updated" >&2
-fi
-EOF
-    chmod +x /etc/kernel/postinst.d/99-usb-fallback
-    einfo "Postinst hook installed at /etc/kernel/postinst.d/99-usb-fallback"
-
-    try make install || die "make install failed"
-    sleep 10
-
-    cd \
-        || die "Could not change to root dir"
-}
-
 function generate_initramfs() {
     echo "Compiling initramfs"
     try emerge --verbose sys-kernel/ugrd
@@ -292,49 +193,91 @@ key_type = "gpg"
 key_file = "/efi/cryptroot_key.luks.gpg"
 EOF
 
-    einfo "ugrd configuration deployed to $config_file"
+    local kver
+    kver=$(make -C /usr/src/linux -s kernelrelease 2>/dev/null) \
+        || kver=$(cat /usr/src/linux/include/config/kernel.release 2>/dev/null) \
+        || die "Could not detect kernel version from /usr/src/linux"
+
+    einfo "Generating initramfs for kernel version $kver"
+    try ugrd --kver "$kver" /efi/EFI/BOOT/initramfs-"$kver".img
+    einfo "Decompressing initramfs to /usr/src/initramfs.cpio"
+    try xz -dc /efi/EFI/BOOT/initramfs-"$kver".img > /usr/src/initramfs.cpio
+
+    einfo "ugrd configuration deployed to $config_file and initramfs decompressed to /usr/src/initramfs.cpio"
 }
 
-# function edit_uefi-mkconfig() {
-#     einfo "Editing uefi-mkconfig to include cryptsetup and resume"
+function install_kernel() {
+    echo "compile kernel"
+    try emerge --oneshot --nodeps app-arch/cpio
+    try emerge --verbose sys-kernel/installkernel sys-kernel/linux-firmware \
+        sys-firmware/nvidia-firmware sys-firmware/sof-firmware
 
-#     local uefi_config="/etc/default/uefi-mkconfig"
-    
-#     if [[ ! -f "$uefi_config" ]]; then
-#         die "uefi-mkconfig config file not found at $uefi_config"
-#     fi
+    try emerge --verbose sys-kernel/gentoo-sources sys-apps/pciutils \
+        app-portage/gentoolkit
 
-#     # Get UUIDs from the environment or detect them
-#     local root_uuid="${CHROOT_ROOT_UNDERLYING_UUID:-}"
-#     local swap_uuid="${CHROOT_SWAP_UNDERLYING_UUID:-}"
+    echo "Selecting kernel to set 1"
+    try eselect kernel set 1 \
+        || die "Could not select kernel source"
 
-#     if [[ -z "$root_uuid" || -z "$swap_uuid" ]]; then
-#         ewarn "UUIDs not set in environment, using device mapper paths"
-#         local kernel_cmdline="root=/dev/mapper/cryptroot rootfstype=btrfs resume=/dev/mapper/cryptswap"
-#     else
-#         local kernel_cmdline="root=UUID=${root_uuid} rootfstype=btrfs resume=UUID=${swap_uuid}"
-#     fi
+    cd /usr/src/linux \
+        || die "could not change to /usr/linux"
 
-#     # Update the KERNEL_CONFIG line
-#     if grep -q "^KERNEL_CONFIG=" "$uefi_config"; then
-#         sed -i "s|^KERNEL_CONFIG=\".*\"|KERNEL_CONFIG=\"%entry_id %linux_name Gentoo %kernel_version ; ${kernel_cmdline}\"|" "$uefi_config" \
-#             || die "Failed to update KERNEL_CONFIG in $uefi_config"
-#     elif grep -q "^#KERNEL_CONFIG=" "$uefi_config"; then
-#         sed -i "s|^#KERNEL_CONFIG=\".*\"|KERNEL_CONFIG=\"%entry_id %linux_name Gentoo %kernel_version ; ${kernel_cmdline}\"|" "$uefi_config" \
-#             || die "Failed to uncomment and set KERNEL_CONFIG in $uefi_config"
-#     else
-#         echo "KERNEL_CONFIG=\"%entry_id %linux_name Gentoo %kernel_version ; ${kernel_cmdline}\"" >> "$uefi_config" \
-#             || die "Failed to add KERNEL_CONFIG to $uefi_config"
-#     fi
+    sleep 3
+    try make defconfig || die "make defconfig failed"
+    echo "defconfig dubug message only"
+    sleep 5
 
-#     # Configure other settings
-#     sed -i 's/^ONLY_LATEST=.*/ONLY_LATEST=false/' "$uefi_config" || die "Failed to set ONLY_LATEST"
-#     sed -i 's/^REVERSE_ORDER=.*/REVERSE_ORDER=false/' "$uefi_config" || die "Failed to set REVERSE_ORDER"
-#     sed -i 's/^DISABLE_LABEL_LIMIT=.*/DISABLE_LABEL_LIMIT=true/' "$uefi_config" || die "Failed to set DISABLE_LABEL_LIMIT"
+    kernel_script
+    sleep 20
 
-#     einfo "uefi-mkconfig updated with kernel commandline: ${kernel_cmdline}"
-#     einfo "DISABLE_LABEL_LIMIT set to: true"
-# }
+    sleep 5
+    try make olddefconfig || die "make olddefconfig failed after scripts/config"
+    sleep 5
+
+    echo "Cleaning previous build"
+    try make clean || die "make clean failed"
+
+    echo "Compiling kernel with ${NPROC} jobs"
+    sleep 5
+    try make -j"${NPROC}" || die "Kernel compilation failed"
+    sleep 5
+
+    echo "Installing modules"
+    try make modules_install || die "make modules_install failed"
+    sleep 5
+
+    echo "Installing kernel (triggers installkernel hooks -> ugrd -> uefi-mkconfig)"
+    einfo "Deploying kernel postinst hook for USB fallback"
+    mkdir -p /etc/kernel/postinst.d
+    cat > /etc/kernel/postinst.d/99-usb-fallback << 'EOF'
+#!/bin/bash
+# Automatically update the UEFI removable-media fallback bootloader
+# whenever installkernel updates the system kernel.
+
+KVER="$1"
+KERNEL_IMAGE="$2"
+
+BOOTX64="/efi/EFI/BOOT/BOOTX64.EFI"
+
+if [[ -z "$KERNEL_IMAGE" || ! -f "$KERNEL_IMAGE" ]]; then
+    echo "Warning: kernel image not found for ${KVER}" >&2
+    exit 1
+fi
+
+mkdir -p "$(dirname "$BOOTX64")"
+cp -f "$KERNEL_IMAGE" "$BOOTX64"
+
+echo "USB fallback updated: $BOOTX64 (${KVER})"
+EOF
+    chmod +x /etc/kernel/postinst.d/99-usb-fallback
+    einfo "Postinst hook installed at /etc/kernel/postinst.d/99-usb-fallback"
+
+    try make install || die "make install failed"
+    sleep 10
+
+    cd \
+        || die "Could not change to root dir"
+}
 
 function enable_service() {
     echo "Enable services"
@@ -350,3 +293,6 @@ function enable_service() {
 
     try rc-service NetworkManager start || die "rc-service NetworkManager start failed"
 }
+
+
+    echo "Installing kernel (triggers installkernel hooks -> ugrd ->
