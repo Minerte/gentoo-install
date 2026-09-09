@@ -272,11 +272,10 @@ EOF
         || die "Could not detect kernel version from /usr/src/linux"
 
     einfo "Generating initramfs for kernel version $kver"
-    try ugrd --kver "$kver" /efi/EFI/BOOT/initramfs-"$kver".img
-    einfo "Decompressing initramfs to /usr/src/initramfs.cpio"
-    try xz -dc /efi/EFI/BOOT/initramfs-"$kver".img > /usr/src/initramfs.cpio
+    try ugrd --kver "$kver" /efi/EFI/BOOT/ugrd.cpio
+    einfo "initramfs deployed to /efi/EFI/BOOT/ugrd.cpio"
 
-    einfo "ugrd configuration deployed to $config_file and initramfs decompressed to /usr/src/initramfs.cpio"
+    einfo "ugrd configuration deployed to $config_file"
 }
 
 function enable_service() {

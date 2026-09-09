@@ -49,7 +49,7 @@ function kernel_script() {
 	local swap_partuuid="${CHROOT_SWAP_PARTUUID:-}"
 
 	local cmdline
-	cmdline="root=PARTUUID=${root_partuuid} rootfstype=btrfs resume=PARTUUID=${swap_partuuid} initrd=\EFI\BOOT\initramfs-${kver}.img rw quiet loglevel=3"
+	cmdline="root=PARTUUID=${root_partuuid} rootfstype=btrfs resume=PARTUUID=${swap_partuuid} initrd=\EFI\BOOT\ugrd.cpio rw quiet loglevel=3"
 
 
     # Enable the command line with PARTUUID
@@ -61,8 +61,6 @@ function kernel_script() {
 	# Verify the changes
 	try ./scripts/config --state CONFIG_CMDLINE
 	try ./scripts/config --state CONFIG_CMDLINE_OVERRIDE
-
-	try ./scripts/config --set-str CONFIG_INITRAMFS_SOURCE "/usr/src/initramfs.cpio" || die "Could not set CONFIG_INITRAMFS_SOURCE"
 	sleep 20
 
 	# =============================================================================
