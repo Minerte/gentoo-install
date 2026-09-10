@@ -1,0 +1,321 @@
+acct-group/audio abi_x86_64 amd64 elibc_glibc kernel_linux
+acct-group/cdrom abi_x86_64 amd64 elibc_glibc kernel_linux
+acct-group/dialout abi_x86_64 amd64 elibc_glibc kernel_linux
+acct-group/disk abi_x86_64 amd64 elibc_glibc kernel_linux
+acct-group/floppy abi_x86_64 amd64 elibc_glibc kernel_linux
+acct-group/input abi_x86_64 amd64 elibc_glibc kernel_linux
+acct-group/jobserver abi_x86_64 amd64 elibc_glibc kernel_linux
+acct-group/kmem abi_x86_64 amd64 elibc_glibc kernel_linux
+acct-group/kvm abi_x86_64 amd64 elibc_glibc kernel_linux
+acct-group/lp abi_x86_64 amd64 elibc_glibc kernel_linux
+acct-group/mail abi_x86_64 amd64 elibc_glibc kernel_linux
+acct-group/man abi_x86_64 amd64 elibc_glibc kernel_linux
+acct-group/portage abi_x86_64 amd64 elibc_glibc kernel_linux
+acct-group/render abi_x86_64 amd64 elibc_glibc kernel_linux
+acct-group/root abi_x86_64 amd64 elibc_glibc kernel_linux
+acct-group/sgx abi_x86_64 amd64 elibc_glibc kernel_linux
+acct-group/shadow abi_x86_64 amd64 elibc_glibc kernel_linux
+acct-group/sshd abi_x86_64 amd64 elibc_glibc kernel_linux
+acct-group/tape abi_x86_64 amd64 elibc_glibc kernel_linux
+acct-group/tty abi_x86_64 amd64 elibc_glibc kernel_linux
+acct-group/usb abi_x86_64 amd64 elibc_glibc kernel_linux
+acct-group/video abi_x86_64 amd64 elibc_glibc kernel_linux
+acct-user/mail abi_x86_64 amd64 elibc_glibc kernel_linux
+acct-user/man abi_x86_64 amd64 elibc_glibc kernel_linux
+acct-user/portage abi_x86_64 amd64 elibc_glibc kernel_linux
+acct-user/postmaster abi_x86_64 amd64 elibc_glibc kernel_linux
+acct-user/root abi_x86_64 amd64 elibc_glibc kernel_linux
+acct-user/sshd abi_x86_64 amd64 elibc_glibc kernel_linux
+app-admin/eselect abi_x86_64 amd64 elibc_glibc kernel_linux
+app-admin/perl-cleaner abi_x86_64 amd64 elibc_glibc kernel_linux
+app-admin/setools abi_x86_64 amd64 elibc_glibc kernel_linux python_targets_python3_14
+app-alternatives/awk abi_x86_64 amd64 elibc_glibc gawk kernel_linux
+app-alternatives/bzip2 abi_x86_64 amd64 elibc_glibc kernel_linux reference
+app-alternatives/gpg abi_x86_64 amd64 elibc_glibc kernel_linux nls reference ssl
+app-alternatives/gzip abi_x86_64 amd64 elibc_glibc kernel_linux reference
+app-alternatives/lex abi_x86_64 amd64 elibc_glibc flex kernel_linux
+app-alternatives/ninja abi_x86_64 amd64 elibc_glibc kernel_linux reference
+app-alternatives/sh abi_x86_64 amd64 bash elibc_glibc kernel_linux
+app-alternatives/tar abi_x86_64 amd64 elibc_glibc gnu kernel_linux
+app-alternatives/yacc abi_x86_64 amd64 bison elibc_glibc kernel_linux
+app-arch/bzip2 abi_x86_64 amd64 elibc_glibc kernel_linux
+app-arch/gzip abi_x86_64 amd64 elibc_glibc kernel_linux pic
+app-arch/libarchive abi_x86_64 acl amd64 bzip2 e2fsprogs elibc_glibc iconv kernel_linux lzma xattr zstd
+app-arch/tar abi_x86_64 acl amd64 elibc_glibc kernel_linux nls selinux xattr
+app-arch/unzip abi_x86_64 amd64 bzip2 elibc_glibc kernel_linux unicode
+app-arch/xz-utils abi_x86_64 amd64 elibc_glibc extra-filters kernel_linux nls
+app-arch/zstd abi_x86_64 amd64 elibc_glibc kernel_linux lzma zlib
+app-crypt/gnupg abi_x86_64 alternatives amd64 bzip2 elibc_glibc kernel_linux nls readline selinux smartcard ssl tofu
+app-crypt/gpgme abi_x86_64 amd64 elibc_glibc kernel_linux
+app-crypt/libb2 abi_x86_64 amd64 elibc_glibc kernel_linux
+app-crypt/libmd abi_x86_64 amd64 elibc_glibc kernel_linux
+app-crypt/pinentry abi_x86_64 amd64 caps elibc_glibc kernel_linux ncurses selinux
+app-crypt/rhash abi_x86_64 amd64 elibc_glibc kernel_linux nls ssl
+app-doc/info-manual abi_x86_64 amd64 elibc_glibc kernel_linux
+app-editors/nano abi_x86_64 amd64 elibc_glibc kernel_linux ncurses nls spell unicode
+app-eselect/eselect-iptables abi_x86_64 amd64 elibc_glibc kernel_linux
+app-eselect/eselect-lib-bin-symlink abi_x86_64 amd64 elibc_glibc kernel_linux
+app-eselect/eselect-pinentry abi_x86_64 amd64 elibc_glibc kernel_linux
+app-i18n/gnulib-l10n abi_x86_64 amd64 elibc_glibc kernel_linux
+app-misc/ca-certificates abi_x86_64 amd64 elibc_glibc kernel_linux
+app-misc/editor-wrapper abi_x86_64 amd64 elibc_glibc kernel_linux
+app-misc/mime-types abi_x86_64 amd64 elibc_glibc kernel_linux
+app-misc/pax-utils abi_x86_64 amd64 caps elibc_glibc kernel_linux python_single_target_python3_14
+app-portage/elt-patches abi_x86_64 amd64 elibc_glibc kernel_linux
+app-portage/gemato abi_x86_64 amd64 elibc_glibc gpg kernel_linux python_targets_python3_14
+app-portage/getuto abi_x86_64 amd64 elibc_glibc kernel_linux
+app-portage/portage-utils abi_x86_64 amd64 elibc_glibc kernel_linux qmanifest
+app-shells/bash abi_x86_64 amd64 elibc_glibc kernel_linux net nls readline
+app-text/build-docbook-catalog abi_x86_64 amd64 elibc_glibc kernel_linux
+app-text/docbook-xml-dtd abi_x86_64 amd64 elibc_glibc kernel_linux
+app-text/docbook-xml-dtd abi_x86_64 amd64 elibc_glibc kernel_linux
+app-text/docbook-xml-dtd abi_x86_64 amd64 elibc_glibc kernel_linux
+app-text/docbook-xsl-ns-stylesheets abi_x86_64 amd64 elibc_glibc kernel_linux
+app-text/docbook-xsl-stylesheets abi_x86_64 amd64 elibc_glibc kernel_linux
+app-text/manpager abi_x86_64 amd64 elibc_glibc kernel_linux
+app-text/opensp abi_x86_64 amd64 elibc_glibc kernel_linux nls
+app-text/po4a abi_x86_64 amd64 elibc_glibc kernel_linux
+app-text/scdoc abi_x86_64 amd64 elibc_glibc kernel_linux
+app-text/sgml-common abi_x86_64 amd64 elibc_glibc kernel_linux
+dev-build/autoconf abi_x86_64 amd64 elibc_glibc kernel_linux
+dev-build/autoconf-archive abi_x86_64 amd64 elibc_glibc kernel_linux
+dev-build/autoconf-wrapper abi_x86_64 amd64 elibc_glibc kernel_linux
+dev-build/automake abi_x86_64 amd64 elibc_glibc kernel_linux
+dev-build/automake-wrapper abi_x86_64 amd64 elibc_glibc kernel_linux
+dev-build/cmake abi_x86_64 amd64 elibc_glibc kernel_linux ncurses
+dev-build/gtk-doc-am abi_x86_64 amd64 elibc_glibc kernel_linux
+dev-build/libtool abi_x86_64 amd64 elibc_glibc kernel_linux
+dev-build/make abi_x86_64 amd64 elibc_glibc guile_single_target_3-0 kernel_linux nls
+dev-build/meson abi_x86_64 amd64 elibc_glibc kernel_linux python_targets_python3_14
+dev-build/meson-format-array abi_x86_64 amd64 elibc_glibc kernel_linux python_targets_python3_14
+dev-build/ninja abi_x86_64 amd64 elibc_glibc kernel_linux
+dev-db/sqlite abi_x86_64 amd64 elibc_glibc kernel_linux readline
+dev-lang/perl abi_x86_64 amd64 elibc_glibc gdbm kernel_linux
+dev-lang/python abi_x86_64 amd64 elibc_glibc ensurepip gdbm kernel_linux llvm_slot_19 ncurses readline sqlite ssl
+dev-lang/python-exec abi_x86_64 amd64 elibc_glibc kernel_linux native-symlinks python_targets_python3_12 python_targets_python3_13 python_targets_python3_14 python_targets_python3_15 python_targets_python3_15t
+dev-lang/python-exec-conf abi_x86_64 amd64 elibc_glibc kernel_linux python_targets_python3_14
+dev-lang/swig abi_x86_64 amd64 elibc_glibc kernel_linux pcre
+dev-libs/elfutils abi_x86_64 amd64 bzip2 debuginfod elibc_glibc kernel_linux libarchive lzma nls utils
+dev-libs/expat abi_x86_64 amd64 elibc_glibc kernel_linux unicode
+dev-libs/gmp abi_x86_64 amd64 asm cpudetection cxx elibc_glibc kernel_linux pic
+dev-libs/json-c abi_x86_64 amd64 elibc_glibc kernel_linux
+dev-libs/jsoncpp abi_x86_64 amd64 elibc_glibc kernel_linux
+dev-libs/leancrypto abi_x86_64 amd64 asm elibc_glibc kernel_linux
+dev-libs/libassuan abi_x86_64 amd64 elibc_glibc kernel_linux
+dev-libs/libffi abi_x86_64 amd64 elibc_glibc exec-static-trampoline kernel_linux
+dev-libs/libgcrypt abi_x86_64 amd64 asm elibc_glibc getentropy kernel_linux
+dev-libs/libgpg-error abi_x86_64 amd64 elibc_glibc kernel_linux nls
+dev-libs/libksba abi_x86_64 amd64 elibc_glibc kernel_linux
+dev-libs/libpcre2 abi_x86_64 amd64 bzip2 elibc_glibc jit kernel_linux pcre16 pcre32 readline unicode zlib
+dev-libs/libpipeline abi_x86_64 amd64 elibc_glibc kernel_linux
+dev-libs/libtasn1 abi_x86_64 amd64 elibc_glibc kernel_linux
+dev-libs/libunistring abi_x86_64 amd64 elibc_glibc kernel_linux
+dev-libs/libuv abi_x86_64 amd64 elibc_glibc kernel_linux
+dev-libs/libxml2 abi_x86_64 amd64 elibc_glibc kernel_linux python_targets_python3_14 readline
+dev-libs/libxslt abi_x86_64 amd64 crypt elibc_glibc kernel_linux python_targets_python3_14
+dev-libs/mpc abi_x86_64 amd64 elibc_glibc kernel_linux
+dev-libs/mpdecimal abi_x86_64 amd64 elibc_glibc kernel_linux
+dev-libs/mpfr abi_x86_64 amd64 elibc_glibc kernel_linux
+dev-libs/nettle abi_x86_64 amd64 asm elibc_glibc gmp kernel_linux
+dev-libs/npth abi_x86_64 amd64 elibc_glibc kernel_linux
+dev-libs/openssl abi_x86_64 amd64 asm cpu_flags_x86_sse2 elibc_glibc kernel_linux quic
+dev-libs/popt abi_x86_64 amd64 elibc_glibc kernel_linux nls
+dev-libs/xxhash abi_x86_64 amd64 elibc_glibc kernel_linux
+dev-perl/Capture-Tiny abi_x86_64 amd64 elibc_glibc kernel_linux
+dev-perl/Class-Inspector abi_x86_64 amd64 elibc_glibc kernel_linux
+dev-perl/Config-AutoConf abi_x86_64 amd64 elibc_glibc kernel_linux
+dev-perl/Exporter-Tiny abi_x86_64 amd64 elibc_glibc kernel_linux
+dev-perl/ExtUtils-CChecker abi_x86_64 amd64 elibc_glibc kernel_linux
+dev-perl/File-ShareDir abi_x86_64 amd64 elibc_glibc kernel_linux
+dev-perl/File-ShareDir-Install abi_x86_64 amd64 elibc_glibc kernel_linux
+dev-perl/File-Slurper abi_x86_64 amd64 elibc_glibc kernel_linux
+dev-perl/List-MoreUtils abi_x86_64 amd64 elibc_glibc kernel_linux xs
+dev-perl/List-MoreUtils-XS abi_x86_64 amd64 elibc_glibc kernel_linux
+dev-perl/Locale-gettext abi_x86_64 amd64 elibc_glibc kernel_linux
+dev-perl/MIME-Charset abi_x86_64 amd64 elibc_glibc kernel_linux
+dev-perl/Module-Build abi_x86_64 amd64 elibc_glibc kernel_linux
+dev-perl/Params-Util abi_x86_64 amd64 elibc_glibc kernel_linux
+dev-perl/PerlIO-utf8_strict abi_x86_64 amd64 elibc_glibc kernel_linux
+dev-perl/Pod-Parser abi_x86_64 amd64 elibc_glibc kernel_linux
+dev-perl/SGMLSpm abi_x86_64 amd64 elibc_glibc kernel_linux
+dev-perl/Syntax-Keyword-Try abi_x86_64 amd64 elibc_glibc kernel_linux
+dev-perl/TermReadKey abi_x86_64 amd64 elibc_glibc kernel_linux
+dev-perl/Text-CharWidth abi_x86_64 amd64 elibc_glibc kernel_linux
+dev-perl/Text-WrapI18N abi_x86_64 amd64 elibc_glibc kernel_linux
+dev-perl/Unicode-LineBreak abi_x86_64 amd64 elibc_glibc kernel_linux
+dev-perl/XS-Parse-Keyword abi_x86_64 amd64 elibc_glibc kernel_linux
+dev-perl/YAML-Tiny abi_x86_64 amd64 elibc_glibc kernel_linux
+dev-python/certifi abi_x86_64 amd64 elibc_glibc kernel_linux python_targets_python3_14
+dev-python/charset-normalizer abi_x86_64 amd64 elibc_glibc kernel_linux python_targets_python3_14
+dev-python/cython abi_x86_64 amd64 elibc_glibc kernel_linux python_targets_python3_14
+dev-python/editables abi_x86_64 amd64 elibc_glibc kernel_linux python_targets_python3_14
+dev-python/ensurepip-pip abi_x86_64 amd64 elibc_glibc kernel_linux python_targets_python3_14 test-rust
+dev-python/flit-core abi_x86_64 amd64 elibc_glibc kernel_linux python_targets_python3_14
+dev-python/gentoo-common abi_x86_64 amd64 elibc_glibc kernel_linux
+dev-python/gpep517 abi_x86_64 amd64 elibc_glibc kernel_linux python_targets_python3_14
+dev-python/hatchling abi_x86_64 amd64 elibc_glibc kernel_linux python_targets_python3_14
+dev-python/hatch-vcs abi_x86_64 amd64 elibc_glibc kernel_linux python_targets_python3_14
+dev-python/idna abi_x86_64 amd64 elibc_glibc kernel_linux python_targets_python3_14
+dev-python/installer abi_x86_64 amd64 elibc_glibc kernel_linux python_targets_python3_14
+dev-python/jaraco-context abi_x86_64 amd64 elibc_glibc kernel_linux python_targets_python3_14
+dev-python/jaraco-functools abi_x86_64 amd64 elibc_glibc kernel_linux python_targets_python3_14
+dev-python/jaraco-text abi_x86_64 amd64 elibc_glibc kernel_linux python_targets_python3_14
+dev-python/jinja2 abi_x86_64 amd64 elibc_glibc kernel_linux python_targets_python3_14
+dev-python/markupsafe abi_x86_64 amd64 elibc_glibc kernel_linux native-extensions python_targets_python3_14
+dev-python/more-itertools abi_x86_64 amd64 elibc_glibc kernel_linux python_targets_python3_14
+dev-python/networkx abi_x86_64 amd64 elibc_glibc kernel_linux python_targets_python3_14
+dev-python/packaging abi_x86_64 amd64 elibc_glibc kernel_linux python_targets_python3_14
+dev-python/pathspec abi_x86_64 amd64 elibc_glibc kernel_linux python_targets_python3_14
+dev-python/platformdirs abi_x86_64 amd64 elibc_glibc kernel_linux python_targets_python3_14
+dev-python/pluggy abi_x86_64 amd64 elibc_glibc kernel_linux python_targets_python3_14
+dev-python/pypax abi_x86_64 amd64 elibc_glibc kernel_linux python_targets_python3_14 xtpax
+dev-python/pysocks abi_x86_64 amd64 elibc_glibc kernel_linux python_targets_python3_14
+dev-python/requests abi_x86_64 amd64 elibc_glibc kernel_linux python_targets_python3_14 test-rust
+dev-python/setuptools abi_x86_64 amd64 elibc_glibc kernel_linux python_targets_python3_14
+dev-python/setuptools-scm abi_x86_64 amd64 elibc_glibc kernel_linux python_targets_python3_14
+dev-python/trove-classifiers abi_x86_64 amd64 elibc_glibc kernel_linux python_targets_python3_14
+dev-python/urllib3 abi_x86_64 amd64 elibc_glibc kernel_linux python_targets_python3_14
+dev-python/vcs-versioning abi_x86_64 amd64 elibc_glibc kernel_linux python_targets_python3_14
+dev-python/wheel abi_x86_64 amd64 elibc_glibc kernel_linux python_targets_python3_14
+dev-util/debugedit abi_x86_64 amd64 elibc_glibc kernel_linux
+dev-util/gperf abi_x86_64 amd64 elibc_glibc kernel_linux
+dev-util/patchelf abi_x86_64 amd64 elibc_glibc kernel_linux
+dev-util/pkgconf abi_x86_64 amd64 elibc_glibc kernel_linux native-symlinks
+dev-util/re2c abi_x86_64 amd64 elibc_glibc kernel_linux
+net-dns/c-ares abi_x86_64 amd64 elibc_glibc kernel_linux
+net-dns/libidn2 abi_x86_64 amd64 elibc_glibc kernel_linux nls
+net-firewall/iptables abi_x86_64 amd64 elibc_glibc kernel_linux
+net-libs/gnutls abi_x86_64 amd64 cxx elibc_glibc idn kernel_linux nls openssl post-quantum tls-heartbeat zlib
+net-libs/libmicrohttpd abi_x86_64 amd64 elibc_glibc epoll eventfd kernel_linux ssl thread-names
+net-libs/libmnl abi_x86_64 amd64 elibc_glibc kernel_linux
+net-libs/libnsl abi_x86_64 amd64 elibc_glibc kernel_linux
+net-libs/libpsl abi_x86_64 amd64 elibc_glibc idn kernel_linux
+net-libs/libtirpc abi_x86_64 amd64 elibc_glibc kernel_linux
+net-mail/mailbase abi_x86_64 amd64 elibc_glibc kernel_linux pam
+net-misc/curl abi_x86_64 adns alt-svc amd64 curl_ssl_openssl elibc_glibc ftp hsts httpsrr imap kernel_linux openssl pop3 psl smtp ssl tftp websockets
+net-misc/dhcpcd abi_x86_64 amd64 elibc_glibc embedded ipv6 kernel_linux udev
+net-misc/iputils abi_x86_64 amd64 arping caps elibc_glibc kernel_linux nls suid
+net-misc/netifrc abi_x86_64 amd64 dhcp elibc_glibc kernel_linux
+net-misc/openssh abi_x86_64 amd64 audit elibc_glibc kernel_linux pam seccomp selinux ssl
+net-misc/rsync abi_x86_64 acl amd64 elibc_glibc iconv kernel_linux python_single_target_python3_14 ssl xattr xxhash
+net-misc/wget abi_x86_64 amd64 elibc_glibc kernel_linux nls pcre ssl zlib
+perl-core/File-Temp abi_x86_64 amd64 elibc_glibc kernel_linux
+sec-keys/openpgp-keys-gentoo-release abi_x86_64 amd64 elibc_glibc kernel_linux
+sec-policy/selinux-base abi_x86_64 amd64 elibc_glibc kernel_linux selinux_policy_types_mcs selinux_policy_types_mls selinux_policy_types_strict selinux_policy_types_targeted ubac unconfined unknown-perms
+sec-policy/selinux-base-policy abi_x86_64 amd64 elibc_glibc kernel_linux selinux_policy_types_mcs selinux_policy_types_mls selinux_policy_types_strict selinux_policy_types_targeted unconfined
+sec-policy/selinux-dirmngr abi_x86_64 amd64 elibc_glibc kernel_linux selinux_policy_types_mcs selinux_policy_types_mls selinux_policy_types_strict selinux_policy_types_targeted
+sec-policy/selinux-gpg abi_x86_64 amd64 elibc_glibc kernel_linux selinux_policy_types_mcs selinux_policy_types_mls selinux_policy_types_strict selinux_policy_types_targeted
+sec-policy/selinux-loadkeys abi_x86_64 amd64 elibc_glibc kernel_linux selinux_policy_types_mcs selinux_policy_types_mls selinux_policy_types_strict selinux_policy_types_targeted
+sec-policy/selinux-mandb abi_x86_64 amd64 elibc_glibc kernel_linux selinux_policy_types_mcs selinux_policy_types_mls selinux_policy_types_strict selinux_policy_types_targeted
+sec-policy/selinux-openrc abi_x86_64 amd64 elibc_glibc kernel_linux selinux_policy_types_mcs selinux_policy_types_mls selinux_policy_types_strict selinux_policy_types_targeted
+sec-policy/selinux-shutdown abi_x86_64 amd64 elibc_glibc kernel_linux selinux_policy_types_mcs selinux_policy_types_mls selinux_policy_types_strict selinux_policy_types_targeted
+sec-policy/selinux-unconfined abi_x86_64 amd64 elibc_glibc kernel_linux selinux_policy_types_mcs selinux_policy_types_mls selinux_policy_types_strict selinux_policy_types_targeted
+sec-policy/selinux-vlock abi_x86_64 amd64 elibc_glibc kernel_linux selinux_policy_types_mcs selinux_policy_types_mls selinux_policy_types_strict selinux_policy_types_targeted
+sys-apps/acl abi_x86_64 amd64 elibc_glibc kernel_linux nls
+sys-apps/attr abi_x86_64 amd64 elibc_glibc kernel_linux nls
+sys-apps/baselayout abi_x86_64 amd64 elibc_glibc kernel_linux
+sys-apps/checkpolicy abi_x86_64 amd64 elibc_glibc kernel_linux
+sys-apps/coreutils abi_x86_64 acl amd64 caps elibc_glibc kernel_linux nls openssl selinux xattr
+sys-apps/diffutils abi_x86_64 amd64 elibc_glibc kernel_linux nls
+sys-apps/elfix abi_x86_64 amd64 elibc_glibc kernel_linux xtpax
+sys-apps/file abi_x86_64 amd64 bzip2 elibc_glibc kernel_linux python_targets_python3_14 seccomp zlib
+sys-apps/findutils abi_x86_64 amd64 elibc_glibc kernel_linux nls selinux
+sys-apps/gawk abi_x86_64 amd64 elibc_glibc kernel_linux mpfr nls readline
+sys-apps/gentoo-functions abi_x86_64 amd64 elibc_glibc kernel_linux
+sys-apps/grep abi_x86_64 amd64 egrep-fgrep elibc_glibc kernel_linux nls pcre
+sys-apps/groff abi_x86_64 amd64 elibc_glibc kernel_linux
+sys-apps/help2man abi_x86_64 amd64 elibc_glibc kernel_linux nls
+sys-apps/install-xattr abi_x86_64 amd64 elibc_glibc kernel_linux
+sys-apps/iproute2 abi_x86_64 amd64 caps elibc_glibc iptables kernel_linux selinux
+sys-apps/kbd abi_x86_64 amd64 bzip2 elibc_glibc kernel_linux nls pam selinux zlib
+sys-apps/kmod abi_x86_64 amd64 elibc_glibc kernel_linux lzma tools zlib zstd
+sys-apps/less abi_x86_64 amd64 elibc_glibc kernel_linux pcre
+sys-apps/locale-gen abi_x86_64 amd64 elibc_glibc kernel_linux
+sys-apps/man-db abi_x86_64 amd64 elibc_glibc kernel_linux manpager nls seccomp selinux zlib
+sys-apps/man-pages abi_x86_64 amd64 elibc_glibc kernel_linux
+sys-apps/net-tools abi_x86_64 amd64 arp elibc_glibc hostname ipv6 kernel_linux nls selinux
+sys-apps/openrc abi_x86_64 amd64 audit elibc_glibc kernel_linux netifrc pam selinux sysvinit unicode
+sys-apps/policycoreutils abi_x86_64 amd64 audit elibc_glibc kernel_linux pam python_targets_python3_14
+sys-apps/portage abi_x86_64 amd64 elibc_glibc ipc kernel_linux native-extensions python_targets_python3_14 rsync-verify selinux xattr
+sys-apps/sandbox abi_x86_32 abi_x86_64 amd64 elibc_glibc kernel_linux nnp
+sys-apps/sed abi_x86_64 acl amd64 elibc_glibc kernel_linux nls selinux xattr
+sys-apps/selinux-python abi_x86_64 amd64 elibc_glibc kernel_linux python_targets_python3_14
+sys-apps/semodule-utils abi_x86_64 amd64 elibc_glibc kernel_linux
+sys-apps/shadow abi_x86_64 acl amd64 audit elibc_glibc kernel_linux nls pam selinux
+sys-apps/systemd-utils abi_x86_64 acl amd64 elibc_glibc kernel_linux kmod python_single_target_python3_14 selinux sysctl tmpfiles udev
+sys-apps/sysvinit abi_x86_64 amd64 elibc_glibc kernel_linux nls selinux
+sys-apps/texinfo abi_x86_64 amd64 elibc_glibc kernel_linux nls standalone
+sys-apps/util-linux abi_x86_64 amd64 audit caps cramfs elibc_glibc hardlink kernel_linux logger ncurses nls pam python_targets_python3_14 readline selinux su suid unicode
+sys-apps/which abi_x86_64 amd64 elibc_glibc kernel_linux
+sys-auth/pambase abi_x86_64 amd64 caps elibc_glibc kernel_linux nullok passwdqc selinux yescrypt
+sys-auth/passwdqc abi_x86_64 amd64 audit elibc_glibc kernel_linux
+sys-devel/binutils abi_x86_64 amd64 cet debuginfod elibc_glibc hardened kernel_linux nls plugins zstd
+sys-devel/binutils-config abi_x86_64 amd64 elibc_glibc kernel_linux native-symlinks
+sys-devel/bison abi_x86_64 amd64 elibc_glibc kernel_linux nls
+sys-devel/flex abi_x86_64 amd64 elibc_glibc kernel_linux nls
+sys-devel/gcc abi_x86_64 amd64 cet cxx default-stack-clash-protection default-znow elibc_glibc fortran hardened kernel_linux multilib nls openmp pie sanitize ssp zstd
+sys-devel/gcc-config abi_x86_64 amd64 cc-wrappers elibc_glibc kernel_linux native-symlinks
+sys-devel/gettext abi_x86_64 acl amd64 cxx elibc_glibc kernel_linux ncurses nls xattr
+sys-devel/gnuconfig abi_x86_64 amd64 elibc_glibc kernel_linux
+sys-devel/m4 abi_x86_64 amd64 elibc_glibc kernel_linux nls
+sys-devel/patch abi_x86_64 amd64 elibc_glibc kernel_linux xattr
+sys-fs/e2fsprogs abi_x86_64 amd64 elibc_glibc kernel_linux nls tools
+sys-fs/udev-init-scripts abi_x86_64 amd64 elibc_glibc kernel_linux
+sys-kernel/linux-headers abi_x86_64 amd64 elibc_glibc kernel_linux
+sys-libs/gdbm abi_x86_64 amd64 berkdb elibc_glibc kernel_linux nls readline
+sys-libs/glibc abi_x86_64 amd64 audit caps cet elibc_glibc kernel_linux multiarch multilib selinux ssp stack-realign static-libs
+sys-libs/libcap abi_x86_64 amd64 elibc_glibc kernel_linux pam
+sys-libs/libcap-ng abi_x86_64 amd64 elibc_glibc kernel_linux python_targets_python3_14
+sys-libs/libseccomp abi_x86_64 amd64 elibc_glibc kernel_linux python_targets_python3_14
+sys-libs/libselinux abi_x86_64 amd64 elibc_glibc kernel_linux python python_targets_python3_14 ruby_targets_ruby33
+sys-libs/libsemanage abi_x86_64 amd64 elibc_glibc kernel_linux python_targets_python3_14
+sys-libs/libsepol abi_x86_64 amd64 elibc_glibc kernel_linux static-libs
+sys-libs/libxcrypt abi_x86_32 abi_x86_64 amd64 compat elibc_glibc kernel_linux system
+sys-libs/ncurses abi_x86_64 amd64 cxx elibc_glibc kernel_linux stack-realign tinfo
+sys-libs/pam abi_x86_64 amd64 audit elibc_glibc kernel_linux nls selinux
+sys-libs/readline abi_x86_64 amd64 elibc_glibc kernel_linux unicode
+sys-libs/timezone-data abi_x86_64 amd64 elibc_glibc kernel_linux nls
+sys-libs/zlib abi_x86_64 amd64 elibc_glibc kernel_linux
+sys-process/audit abi_x86_64 amd64 elibc_glibc kernel_linux python python_targets_python3_14
+sys-process/procps abi_x86_64 amd64 elibc_glibc kernel_linux kill ncurses nls selinux unicode
+sys-process/psmisc abi_x86_64 amd64 elibc_glibc kernel_linux nls selinux
+virtual/acl abi_x86_64 amd64 elibc_glibc kernel_linux
+virtual/dev-manager abi_x86_64 amd64 elibc_glibc kernel_linux
+virtual/editor abi_x86_64 amd64 elibc_glibc kernel_linux
+virtual/libc abi_x86_64 amd64 elibc_glibc kernel_linux
+virtual/libcrypt abi_x86_32 abi_x86_64 amd64 elibc_glibc kernel_linux
+virtual/libiconv abi_x86_64 amd64 elibc_glibc kernel_linux
+virtual/libintl abi_x86_64 amd64 elibc_glibc kernel_linux
+virtual/man abi_x86_64 amd64 elibc_glibc kernel_linux
+virtual/openssh abi_x86_64 amd64 elibc_glibc kernel_linux ssl
+virtual/os-headers abi_x86_64 amd64 elibc_glibc kernel_linux
+virtual/package-manager abi_x86_64 amd64 elibc_glibc kernel_linux
+virtual/pager abi_x86_64 amd64 elibc_glibc kernel_linux
+virtual/perl-Carp abi_x86_64 amd64 elibc_glibc kernel_linux
+virtual/perl-CPAN abi_x86_64 amd64 elibc_glibc kernel_linux
+virtual/perl-CPAN-Meta abi_x86_64 amd64 elibc_glibc kernel_linux
+virtual/perl-Data-Dumper abi_x86_64 amd64 elibc_glibc kernel_linux
+virtual/perl-Encode abi_x86_64 amd64 elibc_glibc kernel_linux
+virtual/perl-Exporter abi_x86_64 amd64 elibc_glibc kernel_linux
+virtual/perl-ExtUtils-CBuilder abi_x86_64 amd64 elibc_glibc kernel_linux
+virtual/perl-ExtUtils-MakeMaker abi_x86_64 amd64 elibc_glibc kernel_linux
+virtual/perl-ExtUtils-ParseXS abi_x86_64 amd64 elibc_glibc kernel_linux
+virtual/perl-File-Path abi_x86_64 amd64 elibc_glibc kernel_linux
+virtual/perl-File-Spec abi_x86_64 amd64 elibc_glibc kernel_linux
+virtual/perl-File-Temp abi_x86_64 amd64 elibc_glibc kernel_linux
+virtual/perl-IO abi_x86_64 amd64 elibc_glibc kernel_linux
+virtual/perl-JSON-PP abi_x86_64 amd64 elibc_glibc kernel_linux
+virtual/perl-Math-BigInt abi_x86_64 amd64 elibc_glibc kernel_linux
+virtual/perl-Module-Metadata abi_x86_64 amd64 elibc_glibc kernel_linux
+virtual/perl-podlators abi_x86_64 amd64 elibc_glibc kernel_linux
+virtual/perl-Scalar-List-Utils abi_x86_64 amd64 elibc_glibc kernel_linux
+virtual/perl-Test-Harness abi_x86_64 amd64 elibc_glibc kernel_linux
+virtual/perl-Text-ParseWords abi_x86_64 amd64 elibc_glibc kernel_linux
+virtual/perl-version abi_x86_64 amd64 elibc_glibc kernel_linux
+virtual/perl-XSLoader abi_x86_64 amd64 elibc_glibc kernel_linux
+virtual/pkgconfig abi_x86_64 amd64 elibc_glibc kernel_linux native-symlinks
+virtual/service-manager abi_x86_64 amd64 elibc_glibc kernel_linux
+virtual/ssh abi_x86_64 amd64 elibc_glibc kernel_linux
+virtual/tmpfiles abi_x86_64 amd64 elibc_glibc kernel_linux
+virtual/udev abi_x86_64 amd64 elibc_glibc kernel_linux
+virtual/zlib abi_x86_64 amd64 elibc_glibc kernel_linux
