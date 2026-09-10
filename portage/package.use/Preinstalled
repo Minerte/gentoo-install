@@ -30,10 +30,10 @@ app-admin/eselect abi_x86_64 amd64 elibc_glibc kernel_linux
 app-admin/perl-cleaner abi_x86_64 amd64 elibc_glibc kernel_linux
 app-admin/setools abi_x86_64 amd64 elibc_glibc kernel_linux python_targets_python3_14
 app-alternatives/awk abi_x86_64 amd64 elibc_glibc gawk kernel_linux
-app-alternatives/bzip2 abi_x86_64 amd64 elibc_glibc kernel_linux reference
+app-alternatives/bzip2 abi_x86_64 amd64 elibc_glibc kernel_linux lbzip2
 app-alternatives/gpg abi_x86_64 amd64 elibc_glibc kernel_linux nls reference ssl
-app-alternatives/gzip abi_x86_64 amd64 elibc_glibc kernel_linux reference
-app-alternatives/lex abi_x86_64 amd64 elibc_glibc flex kernel_linux
+app-alternatives/gzip abi_x86_64 amd64 elibc_glibc kernel_linux pigz
+app-alternatives/lex abi_x86_64 amd64 elibc_glibc reflex kernel_linux
 app-alternatives/ninja abi_x86_64 amd64 elibc_glibc kernel_linux reference
 app-alternatives/sh abi_x86_64 amd64 bash elibc_glibc kernel_linux
 app-alternatives/tar abi_x86_64 amd64 elibc_glibc gnu kernel_linux
@@ -215,7 +215,7 @@ sys-apps/acl abi_x86_64 amd64 elibc_glibc kernel_linux nls
 sys-apps/attr abi_x86_64 amd64 elibc_glibc kernel_linux nls
 sys-apps/baselayout abi_x86_64 amd64 elibc_glibc kernel_linux
 sys-apps/checkpolicy abi_x86_64 amd64 elibc_glibc kernel_linux
-sys-apps/coreutils abi_x86_64 acl amd64 caps elibc_glibc kernel_linux nls openssl selinux xattr
+sys-apps/coreutils abi_x86_64 acl amd64 caps elibc_glibc hostname kernel_linux nls openssl selinux xattr
 sys-apps/diffutils abi_x86_64 amd64 elibc_glibc kernel_linux nls
 sys-apps/elfix abi_x86_64 amd64 elibc_glibc kernel_linux xtpax
 sys-apps/file abi_x86_64 amd64 bzip2 elibc_glibc kernel_linux python_targets_python3_14 seccomp zlib
@@ -233,7 +233,7 @@ sys-apps/less abi_x86_64 amd64 elibc_glibc kernel_linux pcre
 sys-apps/locale-gen abi_x86_64 amd64 elibc_glibc kernel_linux
 sys-apps/man-db abi_x86_64 amd64 elibc_glibc kernel_linux manpager nls seccomp selinux zlib
 sys-apps/man-pages abi_x86_64 amd64 elibc_glibc kernel_linux
-sys-apps/net-tools abi_x86_64 amd64 arp elibc_glibc hostname ipv6 kernel_linux nls selinux
+sys-apps/net-tools abi_x86_64 amd64 arp elibc_glibc ipv6 kernel_linux nls selinux
 sys-apps/openrc abi_x86_64 amd64 audit elibc_glibc kernel_linux netifrc pam selinux sysvinit unicode
 sys-apps/policycoreutils abi_x86_64 amd64 audit elibc_glibc kernel_linux pam python_targets_python3_14
 sys-apps/portage abi_x86_64 amd64 elibc_glibc ipc kernel_linux native-extensions python_targets_python3_14 rsync-verify selinux xattr

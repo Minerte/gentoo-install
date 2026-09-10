@@ -10,11 +10,12 @@ sys-libs/glibc static-libs
 sys-apps/openrc bash
 
 ## Utils
-sys-apps/coreutils hostname kill openssl
 sys-apps/util-linux cryptsetup uuid udev
 sys-apps/systemd-utils tmpfiles udev
 
-# Core 
+virtual/libpcre2-internals static-libs
+
+# Core
 
 # Sys
 sys-auth/seatd builtin server
@@ -34,7 +35,7 @@ app-alternatives/tar gnu
 app-alternatives/sh bash
 app-alternatives/bc gnu
 
-app-admin/sudo ssl 
+app-admin/sudo ssl
 app-crypt/gnupg alternatives smartcard tofu usb tools ssl
 app-shells/bash-completion eselect
 
@@ -83,18 +84,18 @@ dev-lua/lpeg lua_targets_luajit lua_single_target_luajit
 dev-lua/lua-cjson internal-fpconv
 
 # Network
-net-misc/networkmanager dhcpcd iptables nss tools 
+net-misc/networkmanager dhcpcd iptables nss tools
 net-misc/curl adns alt-svc http3 httpsrr ssl quic
 net-misc/iputils arping
 net-dns/dnsmasq dhcp
 net-wireless/wpa_supplicant dbus
-net-libs/ngtcp2 ssl 
+net-libs/ngtcp2 ssl
 
 # Lang
 dev-lang/python ssl sqlite
 dev-lang/rust nightly rust-analyzer rust-src rustfmt
 
-## LLVM 
+## LLVM
 llvm-runtimes/compiler-rt-sanitizers asan ubsan
 llvm-runtimes/libclc spirv
 llvm-core/llvm binutils-plugin
