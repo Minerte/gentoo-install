@@ -62,7 +62,7 @@ media-video/libva-utils putsurface
 # media-libs/
 media-libs/freetype png harfbuzz
 media-libs/harfbuzz truetype glib
-media-libs/mesa opengl vulkan wayland zstd
+media-libs/mesa opengl vulkan wayland X zstd
 media-libs/libglvnd X
 media-libs/libepoxy X
 
