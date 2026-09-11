@@ -86,7 +86,11 @@ function main_install_gentoo_in_chroot() {
 
     enable_service
 
-    try emerge --verbose x11-drivers/xf86-video-nouveau media-libs/mesa
+    echo "Emerging graphics drivers and Vulkan support"
+    try emerge --verbose x11-drivers/xf86-video-nouveau media-libs/mesa \
+        media-libs/vulkan-loader dev-util/vulkan-tools dev-util/vulkan-headers \
+        dev-util/spirv-tools dev-util/spirv-headers media-libs/shaderc \
+        dev-util/vulkan-utility-libraries dev-util/glslang
 
     echo "Set root password"
     try passwd
@@ -136,7 +140,7 @@ function install_kernel() {
     echo "compile kernel"
     try emerge --oneshot --nodeps app-arch/cpio
     try emerge --verbose sys-kernel/installkernel sys-kernel/linux-firmware \
-        sys-firmware/nvidia-firmware sys-firmware/sof-firmware
+        sys-firmware/sof-firmware
 
     try emerge --verbose sys-kernel/gentoo-sources sys-apps/pciutils \
         app-portage/gentoolkit

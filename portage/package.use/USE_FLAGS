@@ -15,8 +15,6 @@ sys-apps/systemd-utils tmpfiles udev
 
 virtual/libpcre2-internals static-libs
 
-# Core
-
 # Sys
 sys-auth/seatd builtin server
 
@@ -63,7 +61,7 @@ media-video/libva-utils putsurface
 # media-libs/
 media-libs/freetype png harfbuzz
 media-libs/harfbuzz truetype glib
-media-libs/mesa opengl vulkan wayland X zstd
+media-libs/mesa opengl video_cards_nouveau vulkan wayland X zstd
 media-libs/libglvnd X
 media-libs/libepoxy X
 
@@ -72,6 +70,7 @@ media-libs/libepoxy X
 # x11-*
 x11-base/xorg-server xorg xvfb
 x11-libs/cairo X
+x11-libs/libdrm video_cards_nouveau
 
 # WEB
 www-client/firefox wayland jumbo-build llvm_slot_21 hwaccel openh264
