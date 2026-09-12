@@ -262,19 +262,21 @@ modules = [
 ]
 
 mount_timeout = 5
+
 keymap_file = "/usr/share/keymaps/i386/qwerty/sv-latin1.map.gz"
-late_resume = true
 
 auto_mounts = ['/efi']
 
-[mounts.efi]
-uuid = "$efi_uuid"
-type = "vfat"
+# [mounts.efi]
+# uuid = "$efi_uuid"
+# type = "vfat"
 
 [cryptsetup."$LUKS_SWAP_NAME"]
 uuid = "$swap_uuid"
 key_type = "gpg"
 key_file = "/efi/cryptswap_key.luks.gpg"
+
+late_resume = true
 
 [cryptsetup."$LUKS_ROOT_NAME"]
 uuid = "$root_uuid"
