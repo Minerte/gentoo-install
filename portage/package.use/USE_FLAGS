@@ -23,7 +23,7 @@ x11-libs/cairo glib X
 
 sys-devel/binutils debuginfod plugins
 
-sys-auth/pambase caps nullok passwdqc yescrypt 
+sys-auth/pambase caps nullok passwdqc yescrypt
 sys-auth/seatd builtin server
 sys-libs/slang pcre zlib
 sys-libs/binutils-libs cet
@@ -44,7 +44,7 @@ sys-process/cronie anacorn inotify
 sys-devel/gettext cxx openmp
 sys-devel/gcc cet fortran openmp sanitize
 
-sys-libs/glibc cet multiarch stack-realign 
+sys-libs/glibc cet multiarch stack-realign
 
 sys-kernel/linux-firmware initramfs redistributable compress-zstd
 
@@ -58,10 +58,10 @@ gui-apps/foot grapheme-clustering
 
 app-alternatives/gpg reference ssl
 app-alternatives/ninja reference
-app-alternatives/bzip2 lbzip2
-app-alternatives/lex reflex
+app-alternatives/bzip2 lbzip2 -reference
+app-alternatives/lex reflex -flex
 app-alternatives/yacc bison
-app-alternatives/gzip pigz
+app-alternatives/gzip pigz -reference
 app-alternatives/cpio gnu
 app-alternatives/awk gawk
 app-alternatives/tar gnu
@@ -76,13 +76,13 @@ app-arch/zstd lzma zlib
 
 app-portage/portage openmp qmanifest
 
-net-misc/chrony cmdmon nettle nts phc refclock rtc seccomp sechash 
+net-misc/chrony cmdmon nettle nts phc refclock rtc seccomp sechash
 net-misc/rsync iconv xxhash
 net-misc/curl adns alt-svc ftp hsts http2 http3 httpsrr idn imap openssl pop3 psl quic smtp tftp websockets
 net-libs/gnutls cxx idn openssl post-quantum tls-heartbeat zlib
 net-libs/libmicrohttpd epoll eventfd thread-names
 
-net-misc/modemmanager introspection mbim qmi qrtr 
+net-misc/modemmanager introspection mbim qmi qrtr
 net-misc/networkmanager concheck introspection modemmanager nss ppp tools wext wifi
 
 llvm-core/llvm binutils-plugin libffi
