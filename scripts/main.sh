@@ -139,11 +139,8 @@ EOF
 function install_kernel() {
     echo "compile kernel"
     try emerge --oneshot --nodeps app-arch/cpio
-    try emerge --verbose sys-kernel/installkernel sys-kernel/linux-firmware \
-        sys-firmware/sof-firmware
-
-    try emerge --verbose sys-kernel/gentoo-sources sys-apps/pciutils \
-        app-portage/gentoolkit
+    try emerge --verbose sys-kernel/gentoo-sources sys-kernel/installkernel sys-kernel/linux-firmware \
+        sys-firmware/sof-firmware sys-apps/pciutils app-portage/gentoolkit
 
     echo "Selecting kernel to set 1"
     try eselect kernel set 1 \
