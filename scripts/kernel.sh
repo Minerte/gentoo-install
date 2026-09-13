@@ -15,7 +15,7 @@ function kernel_script() {
 	#   - Separate /efi partition on USB, fully encrypted root disk
 	#   - ugrd initramfs with GPG-encrypted LUKS key
 	#   - DWL (wlroots Wayland compositor) + Firefox (Wayland)
-	#   - KVM/QEMU (Windows 11 guest today, future VFIO passthrough of the 3090)
+	#   - KVM/QEMU (Windows 11 guest today, VFIO passthrough of the Ryzen iGPU)
 	#   - FreeCAD / KiCad
 	#   - Gaming via Steam
 	#   - STM32 + Arduino development over USB
@@ -46,7 +46,17 @@ function kernel_script() {
 	[[ -n "$swap_uuid" ]] || die "Swap UUID is empty"
 
 	local cmdline
-	cmdline="root=UUID=${root_uuid} rootfstype=btrfs rootflags=subvol=activeroot resume=UUID=${swap_uuid} initrd=\\\\EFI\\\\BOOT\\\\ugrd.cpio rw loglevel=3"
+	# IOMMU in passthrough mode + statically bind the Ryzen 9 9950X iGPU
+	# (graphics + HDMI/DP audio functions) to vfio-pci, so the host amdgpu
+	# driver never claims them. The RTX 3090 stays on the host as the
+	# primary display via nouveau and is NOT involved in passthrough.
+	# NOTE: CONFIG_CMDLINE_OVERRIDE is set below, so this EMBEDDED cmdline
+	# replaces anything the bootloader passes - edit the IDs HERE, not in
+	# your bootloader config. Verify the IDs with:
+	#   lspci -nn | grep -iE "vga|3d|display"
+	# (Ryzen 7000/9000-series iGPUs are typically 1002:1681 video +
+	# 1002:1640 audio - confirm on YOUR box and adjust if different.)
+	cmdline="root=UUID=${root_uuid} rootfstype=btrfs rootflags=subvol=activeroot resume=UUID=${swap_uuid} initrd=\\\\EFI\\\\BOOT\\\\ugrd.cpio rw loglevel=3 amd_iommu=on iommu=pt vfio-pci.ids=1002:1681,1002:1640"
 
 	try ./scripts/config --enable CONFIG_CMDLINE_BOOL
 	try ./scripts/config --set-str CONFIG_CMDLINE "$cmdline"
@@ -146,22 +156,16 @@ function kernel_script() {
 	try ./scripts/config --enable CONFIG_EFI_STUB || die "module do not exit CONFIG_EFI_STUB"
 	try ./scripts/config --enable CONFIG_PROC_FS || die "module do not exit CONFIG_PROC_FS"
 
+		# =============================================================================
+	# 10. Framebuffer / DRM / GPU drivers
 	# =============================================================================
-	# 10. Framebuffer / DRM / Nouveau for RTX 3090
-	# =============================================================================
-	# Use nouveau, not the proprietary NVIDIA driver.
+	# Host display: RTX 3090 via nouveau (no proprietary NVIDIA driver).
 	#
-	# For your ugrd + GPG LUKS setup, the early passphrase prompt can usually use
-	# EFI framebuffer / simpledrm. Nouveau can then load after the real root is
-	# available.
-	#
-	# Recommended: CONFIG_DRM_NOUVEAU=m
-	#
-	# If you specifically need nouveau active inside the initramfs, you can build
-	# it built-in with CONFIG_DRM_NOUVEAU=y, but then GPU firmware must also be
-	# available very early, either in the initramfs or through CONFIG_EXTRA_FIRMWARE.
-	# For an encrypted root, module mode is usually simpler.
-	# =============================================================================
+	# The early ugrd/GPG-LUKS passphrase prompt runs on the EFI framebuffer /
+	# simpledrm, so no GPU driver is needed inside the initramfs. Both GPU
+	# drivers below are modules loaded from the real root, which also means
+	# their firmware never has to be baked into the kernel via
+	# CONFIG_EXTRA_FIRMWARE.
 
 	# Early boot framebuffer/console support.
 	try ./scripts/config --enable CONFIG_FB || die "Failed to set CONFIG_FB"
@@ -175,21 +179,28 @@ function kernel_script() {
 	try ./scripts/config --enable CONFIG_DRM_KMS_HELPER || die "Failed to set CONFIG_DRM_KMS_HELPER"
 	try ./scripts/config --enable CONFIG_DRM_FBDEV_EMULATION || die "Failed to set CONFIG_DRM_FBDEV_EMULATION"
 
-	# DRM helpers used by nouveau.
+	# DRM helpers used by nouveau and amdgpu.
 	try ./scripts/config --enable CONFIG_DRM_TTM || die "Failed to set CONFIG_DRM_TTM"
 	try ./scripts/config --enable CONFIG_DRM_TTM_HELPER || die "Failed to set CONFIG_DRM_TTM_HELPER"
 	try ./scripts/config --enable CONFIG_DRM_EXEC || die "Failed to set CONFIG_DRM_EXEC"
 	try ./scripts/config --enable CONFIG_DRM_SCHED || die "Failed to set CONFIG_DRM_SCHED"
+	try ./scripts/config --enable CONFIG_DRM_DISPLAY_HELPER || die "Failed to set CONFIG_DRM_DISPLAY_HELPER"
+	try ./scripts/config --enable CONFIG_DRM_BUDDY || die "Failed to set CONFIG_DRM_BUDDY"
+	try ./scripts/config --enable CONFIG_DRM_SUBALLOC_HELPER || die "Failed to set CONFIG_DRM_SUBALLOC_HELPER"
 
-	# Nouveau driver.
-	#
-	# IMPORTANT: build as a MODULE, not built-in. You plan to VFIO-passthrough
-	# this exact RTX 3090 to a Windows 11 VM later. A built-in (=y) driver can
-	# never be unbound from the card at runtime, which permanently blocks
-	# passthrough. As a module you can rmmod it and bind vfio-pci on demand.
-	# Your ugrd early console already runs on simpledrm/EFI framebuffer, so
-	# nouveau does not need to be present in the initramfs.
+	# Nouveau driver for the host RTX 3090. The 3090 stays on the host as
+	# the primary display and is no longer part of any passthrough setup.
 	try ./scripts/config --module CONFIG_DRM_NOUVEAU || die "Failed to set CONFIG_DRM_NOUVEAU=m"
+
+	# AMD display driver (amdgpu) - the driver for the Ryzen 9 9950X iGPU
+	# (Raphael/Granite Ridge RDNA2). The iGPU is passed through to a VM and
+	# is NOT used by the host, so this MUST stay a module (=m), never =y:
+	# vfio-pci statically claims the iGPU via vfio-pci.ids= in the kernel
+	# cmdline (see section 2), but only if amdgpu has not grabbed it first.
+	# If you ever want the iGPU on the host (e.g. debugging with the 3090
+	# pulled), remove its IDs from vfio-pci.ids in section 2 and this
+	# module will drive it normally.
+	try ./scripts/config --module CONFIG_DRM_AMDGPU || die "Failed to set CONFIG_DRM_AMDGPU=m"
 
 	# =============================================================================
 	# 11. Console / TTY / VT
@@ -254,7 +265,7 @@ function kernel_script() {
 	try ./scripts/config --module CONFIG_ACPI_WMI || die "module do not exit CONFIG_ACPI_WMI"
 	try ./scripts/config --module CONFIG_SENSORS_ASUS_EC || die "module do not exit CONFIG_SENSORS_ASUS_EC"
 
-	# IOMMU (critical for X670E chipset and VFIO passthrough)
+	# IOMMU (required for the Ryzen iGPU VFIO passthrough below)
 	try ./scripts/config --enable CONFIG_AMD_IOMMU || die "module do not exit CONFIG_AMD_IOMMU"
 	try ./scripts/config --enable CONFIG_AMD_IOMMU_V2 || die "module do not exit CONFIG_AMD_IOMMU_V2"
 	try ./scripts/config --enable CONFIG_IOMMU_SUPPORT || die "module do not exit CONFIG_IOMMU_SUPPORT"
@@ -301,7 +312,7 @@ function kernel_script() {
 	#   echo "options kvm_amd nested=1" > /etc/modprobe.d/kvm.conf
 
 	# =============================================================================
-	# 19. VFIO / GPU Passthrough (RTX 3090)
+	# 19. VFIO / GPU Passthrough (Ryzen iGPU)
 	# =============================================================================
 	# Core VFIO
 	try ./scripts/config --enable CONFIG_VFIO || die "module do not exit CONFIG_VFIO"
@@ -310,10 +321,6 @@ function kernel_script() {
 	try ./scripts/config --enable CONFIG_VFIO_PCI_INTX || die "module do not exit CONFIG_VFIO_PCI_INTX"
 	try ./scripts/config --enable CONFIG_VFIO_IOMMU_TYPE1 || die "module do not exit CONFIG_VFIO_IOMMU_TYPE1"
 	try ./scripts/config --enable CONFIG_VFIO_VIRQFD || die "module do not exit CONFIG_VFIO_VIRQFD"
-	try ./scripts/config --enable CONFIG_VFIO_NOIOMMU || die "module do not exit CONFIG_VFIO_NOIOMMU"
-
-	# Mediated devices (for vGPU / Intel GVT-g / NVIDIA vGPU if ever needed)
-	try ./scripts/config --enable CONFIG_VFIO_MDEV || die "module do not exit CONFIG_VFIO_MDEV"
 
 	# IOMMU user-space API (new in 6.6+, used by modern QEMU)
 	try ./scripts/config --enable CONFIG_IOMMUFD || die "module do not exit CONFIG_IOMMUFD"
@@ -321,8 +328,8 @@ function kernel_script() {
 	# IRQ remapping (required for IOMMU)
 	try ./scripts/config --enable CONFIG_IRQ_REMAP || die "module do not exit CONFIG_IRQ_REMAP"
 
-	# PCI stub driver (for manually binding devices before vfio-pci)
-	try ./scripts/config --enable CONFIG_PCI_STUB || die "module do not exit CONFIG_PCI_STUB"
+	# No CONFIG_PCI_STUB needed: the iGPU is statically claimed by
+	# vfio-pci via vfio-pci.ids= in the kernel cmdline (section 2).
 
 	# =============================================================================
 	# 19b. Host Networking Hardware (NIC + WiFi)
@@ -613,26 +620,38 @@ function kernel_script() {
 	#   1. Add to /etc/modprobe.d/kvm.conf:
 	#        options kvm_amd nested=1
 	#
-	#   2. For VFIO GPU passthrough with RTX 3090 (later, single-GPU today):
-	#      - Nouveau is now built as a module specifically so it can be
-	#        unbound. DO NOT add vfio-pci to ugrd for a single-GPU box; use a
-	#        hook script that does `rmmod nouveau` + binds vfio-pci to the
-	#        3090's PCI IDs right before starting the VM, and reloads nouveau
-	#        after the VM exits.
-	#      - Get the IDs with: lspci -nn | grep -i nvidia
-	#      - If a second GPU (e.g. an AMD/Intel iGPU or card) is ever added
-	#        for the host, you can instead statically bind vfio-pci at boot
-	#        via cmdline: amd_iommu=on iommu=pt vfio-pci.ids=10de:XXXX,10de:YYYY
+	#   2. Ryzen 9 9950X iGPU passthrough (the RTX 3090 stays on the host as
+	#      the primary display and is no longer involved in passthrough):
+	#      - Enable the iGPU in BIOS first: Advanced -> NB Configuration ->
+	#        Integrated Graphics = Enabled, and set Primary Display = PCIE
+	#        so the 3090 keeps driving the host console. If the iGPU does
+	#        not appear in `lspci`, this BIOS setting is the reason.
+	#      - The kernel cmdline is EMBEDDED (CONFIG_CMDLINE_OVERRIDE), so
+	#        the iommu/vfio options live in this script's cmdline variable
+	#        (section 2). Verify YOUR PCI IDs after first boot and fix them
+	#        there:
+	#          lspci -nn | grep -iE "vga|3d|display"
+	#        Ryzen 7000/9000-series iGPUs are typically 1002:1681 (graphics)
+	#        plus 1002:1640 (HDMI/DP audio) - you MUST bind BOTH functions
+	#        or the audio device stays on the host.
+	#      - Both amdgpu and vfio-pci are modules, so load order matters.
+	#        Create /etc/modprobe.d/vfio.conf with:
+	#          options vfio-pci ids=1002:1681,1002:1640
+	#          softdep amdgpu pre: vfio-pci
+	#        (vfio-pci.ids= is already on the embedded cmdline; the file
+	#        makes binding robust and the softdep guarantees vfio-pci
+	#        claims the iGPU before amdgpu can ever probe it).
+	#      - Do NOT add vfio-pci or the iGPU IDs to ugrd: the GPG passphrase
+	#        prompt runs on simpledrm/EFI framebuffer via the 3090, and
+	#        grabbing the iGPU inside the initramfs buys you nothing.
+	#      - Bonus: the Raphael/Granite Ridge iGPU has a working function-
+	#        level reset, so the AMD vendor-reset workaround older cards
+	#        needed does not apply - rebinding after a VM exits is clean.
 	#
-	#   3. WARNING: Since kernel 6.0, loading VFIO in initramfs can freeze
-	#      the framebuffer. With GPG encryption in ugrd, this means you may
-	#      not see the passphrase prompt. Test with a fallback unlock method
-	#      (serial console, SSH, or second GPU) before relying on this.
-	#
-	#   4. Verify the real NIC/WiFi/audio chips with `lspci -nn` after first
+	#   3. Verify the real NIC/WiFi/audio chips with `lspci -nn` after first
 	#      boot and prune whichever driver in sections 17/19b doesn't match.
 	#
-	#   5. Steam/Proton also needs 32-bit userspace libraries, not just the
+	#   4. Steam/Proton also needs 32-bit userspace libraries, not just the
 	#      kernel's IA32_EMULATION. Add ABI_X86="32 64" to make.conf so
 	#      Portage builds 32-bit variants of mesa/audio/etc.
 	# =============================================================================
