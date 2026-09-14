@@ -36,7 +36,7 @@ app-misc/pax-utils caps -man -python -seccomp -test
 app-portage/gemato gpg -pretty-log -test
 app-portage/portage-utils openmp qmanifest -static
 
-app-shells/bash net -afs -bashlogger -examples -mem-scramble -pgo -plugins
+app-shells/bash net pgo -afs -bashlogger -examples -mem-scramble -plugins
 app-shells/bash-completion eselect -test
 
 app-text/xmlto latex -text
@@ -101,7 +101,7 @@ media-libs/libass fontconfig -libunibreak -test
 media-libs/libepoxy X -test
 media-libs/libglvnd X -test
 media-libs/libvpx highbitdepth postproc -doc -static-libs -test
-media-libs/libwebp jpeg png -gif -opengl -static-libs -swap-16bit-csp -tiff
+media-libs/libwebp gif jpeg png -opengl -static-libs -swap-16bit-csp -tiff
 media-libs/mesa llvm opengl proprietary-codecs X -debug -lm-sensors -opencl -sysprof -test -unwind -vaapi -valgrind
 media-video/ffmpeg bzip2 dav1d drm fontconfig gnutls gpl libass truetype xml -amf -amr -amrenc -appkit -bluray -bs2b -cairo -cdio -chromaprint -chromium -codec2 -cuda-clang -doc -dvd -fdk -flite -frei0r -fribidi -gcrypt -gme -gmp -gsm -iec61883 -ieee1394 -jack -jpeg2k -jpegxl -kvazaar -ladspa -lame -lcms -libaom -libaribb24 -libcaca -libilbc -liblc3 -libplacebo -librtmp -libsoxr -lv2 -lzma -modplug -nvenc -ocr -openal -opencl -opencolorio -opengl -openh264 -openmpt -openssl -opus -pulseaudio -qrcode -qsv -quirc -rabbitmq -rav1e -rist -rubberband -samba -sdl -snappy -sndio -soc -speex -srt -ssh -svg -svt-av1 -theora -twolame -v4l -vaapi -vdpau -vidstab -vmaf -vorbis -vpx -webp -x264 -x265 -xvid -zeromq -zimg -zvbi
 
@@ -189,7 +189,6 @@ www-client/firefox clang jumbo-build system-av1 system-harfbuzz system-icu syste
 
 # x11-*
 # x11-base/xorg-server xorg -debug -minimal -suid -test -unwind -xcsecurity -xephyr -xnest -xvfb
-x11-base/xwayland -libei -test -unwind -xcsecurity
 x11-libs/cairo glib -aqua -debug -gtk-doc -lzo -test
 x11-libs/gdk-pixbuf introspection -gif -gtk-doc -jpeg -test -tiff
 x11-libs/gtk+ introspection -aqua -broadway -cloudproviders -colord -cups -examples -gtk-doc -sysprof -test -vim-syntax -xinerama
