@@ -1,6 +1,6 @@
 app-accessibility/at-spi2-core introspection -dbus-broker -gtk-doc -test
 
-app-admin/sudo secure-path sendmail -gcrypt -ldap -offensive -sasl -skey -sssd
+# app-admin/sudo secure-path sendmail -gcrypt -ldap -offensive -sasl -skey -sssd
 
 ### app-alternatives/*
 app-alternatives/awk gawk -busybox -mawk -nawk -split-usr
@@ -28,8 +28,6 @@ app-crypt/pinentry caps -efl -emacs -gtk -keyring -qt6 -verify-sig
 
 app-editors/nano spell -debug -justify -magic -minimal
 
-## app-misc/*
-app-misc/ca-certificates -cacert
 app-misc/pax-utils caps -man -python -seccomp -test
 
 ## app-portage/*
@@ -73,7 +71,6 @@ dev-python/pygobject cairo -debug -test
 dev-python/pypax xtpax -debug -ptpax
 dev-python/requests test-rust -socks5 -test -verify-provenance
 
-## dev-util/*
 dev-util/pkgconf native-symlinks
 
 dev-vcs/git gpg iconv pcre perl rust safe-directory webdav -cgi -cvs -debug -doc -highlight -keyring -perforce -subversion -test -tk -xinetd
@@ -166,7 +163,6 @@ sys-fs/btrfs-progs convert man -experimental -reiserfs -static -static-libs
 sys-fs/cryptsetup argon2 openssl -fips -gcrypt -kernel -nettle -passwdqc -pwquality -ssh -static -static-libs -test -urandom
 sys-fs/dosfstools iconv -compat -test
 
-## sys-kernel/*
 sys-kernel/linux-firmware initramfs redistributable -bindist -compress-xz -compress-zstd -deduplicate -dist-kernel -savedconfig
 
 ## sys-libs/*
