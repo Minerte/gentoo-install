@@ -1,0 +1,199 @@
+app-accessibility/at-spi2-core introspection -dbus-broker -gtk-doc -test
+
+app-admin/sudo secure-path sendmail -gcrypt -ldap -offensive -sasl -skey -sssd
+
+### app-alternatives/*
+app-alternatives/awk gawk -busybox -mawk -nawk -split-usr
+app-alternatives/bc gnu -gh
+app-alternatives/bzip2 lbzip2 -reference -pbzip2 -split-usr
+app-alternatives/cpio gnu -libarchive -split-usr
+app-alternatives/gpg reference ssl -freepg -sequoia
+app-alternatives/gzip pigz -reference -split-usr
+app-alternatives/lex reflex -flex
+app-alternatives/ninja reference -samurai
+app-alternatives/sh bash -busybox -dash -ksh -lksh -mksh
+app-alternatives/tar gnu -libarchive -split-usr
+app-alternatives/yacc bison -byacc -reference
+
+## app-arch/*
+app-arch/libarchive bzip2 e2fsprogs iconv lzma -blake2 -expat -lz4 -lzo -nettle -static-libs -test
+app-arch/unzip bzip2 -natspec
+app-arch/xz-utils extra-filters -doc -pgo -static-libs
+app-arch/zip bzip2 -natspec
+app-arch/zstd lzma -lz4 -static-libs -test
+
+## app-crypt/*
+app-crypt/gnupg alternatives bzip2 smartcard tofu -doc -ldap -test -tpm -user-socket -verify-sig -wks-server
+app-crypt/pinentry caps -efl -emacs -gtk -keyring -qt6 -verify-sig
+
+app-editors/nano spell -debug -justify -magic -minimal
+
+## app-misc/*
+app-misc/ca-certificates -cacert
+app-misc/pax-utils caps -man -python -seccomp -test
+
+## app-portage/*
+app-portage/gemato gpg -pretty-log -test
+app-portage/portage-utils openmp qmanifest -static
+
+app-shells/bash net -afs -bashlogger -examples -mem-scramble -pgo -plugins
+app-shells/bash-completion eselect -test
+
+app-text/xmlto latex -text
+
+dev-cpp/eigen openmp -adolc -boost -cholmod -clang -cuda -debug -doc -fftw -hip -klu -lapack -mathjax -opengl -pastix -sparsehash -spqr -superlu -test -umfpack
+
+## dev-lang/*
+dev-lang/perl gdbm -berkdb -doc -minimal
+dev-lang/python ensurepip gdbm sqlite -bluetooth -build -debug -examples -jit -libedit -pgo -tail-call-interp -test -tk -valgrind
+dev-lang/python-exec native-symlinks -test
+dev-lang/rust-bin clippy rustfmt -big-endian -doc -prefix -rust-analyzer -rust-src rust-analyzer doc
+dev-lang/swig pcre -ccache -doc -test
+
+## dev-libs/*
+dev-libs/elfutils bzip2 debuginfod libarchive lzma -stacktrace -static-libs -test -valgrind
+dev-libs/glib elf introspection mime -debug -doc -static-libs -sysprof -systemtap -test
+dev-libs/gmp asm cpudetection cxx pic -doc -static-libs
+dev-libs/leancrypto asm -test
+dev-libs/libevent clock-gettime -debug -malloc-replacement -static-libs -test -verbose-debug
+dev-libs/libffi exec-static-trampoline -debug -pax-kernel -static-libs -test
+dev-libs/libgcrypt asm getentropy -doc -static-libs -verify-sig
+dev-libs/libnl debug -python -test
+dev-libs/libpcre bzip2 cxx -libedit -pcre16 -pcre32 -static-libs -valgrind
+dev-libs/libpcre2 bzip2 pcre16 pcre32 -libedit -static-libs -valgrind
+dev-libs/nettle asm gmp -doc -static-libs
+dev-libs/openssl asm quic -fips -ktls -rfc3779 -sctp -static-libs -test -tls-compression -vanilla -weak-ssl-ciphers
+dev-libs/simdjson all-impls -test
+
+## dev-python/*
+dev-python/ensurepip-pip test-rust -test
+dev-python/markupsafe native-extensions -debug -test -verify-provenance
+dev-python/pillow jpeg -avif -debug -examples -imagequant -jpeg2k -lcms -raqm -test -tiff -tk -truetype -webp -xcb
+dev-python/pygobject cairo -debug -test
+dev-python/pypax xtpax -debug -ptpax
+dev-python/requests test-rust -socks5 -test -verify-provenance
+
+## dev-util/*
+dev-util/pkgconf native-symlinks
+
+dev-vcs/git gpg iconv pcre perl rust safe-directory webdav -cgi -cvs -debug -doc -highlight -keyring -perforce -subversion -test -tk -xinetd
+
+gui-apps/foot grapheme-clustering -test -utempter
+gui-libs/wlroots drm libinput X -lcms -liftoff -x11-backend -xcb-errors
+
+## llvm-core/*
+llvm-core/clang extra pie static-analyzer -debug -doc -ieee-long-double -test -xml
+llvm-core/clang-common cet -bootstrap-prefix -default-compiler-rt -default-libcxx -default-lld -emacs -llvm-libunwind
+llvm-core/llvm binutils-plugin libffi -debug -debuginfod -doc -exegesis -libedit -test -xml -z3
+llvm-runtimes/clang-rtlib-config -default-compiler-rt
+llvm-runtimes/clang-runtime compiler-rt openmp sanitize -default-compiler-rt -default-libcxx -default-lld -libcxx -llvm-libunwind -offload -polly
+llvm-runtimes/compiler-rt atomic-builtins clang -debug -test
+llvm-runtimes/compiler-rt-sanitizers asan cfi clang ctx-profile dfsan gwp-asan hwasan libfuzzer lsan memprof msan nsan profile rtsan safestack scudo tsan ubsan xray -debug -orc -shadowcallstack -test
+llvm-runtimes/libclc spirv
+
+## media-libs/*
+media-libs/dav1d 8bit 10bit asm -test -xxhash
+media-libs/fcft harfbuzz libutf8proc -examples -test
+media-libs/freetype adobe-cff bzip2 cleartype-hinting harfbuzz png -brotli -debug -doc -fontforge -static-libs -svg
+media-libs/harfbuzz cairo glib graphite introspection truetype -debug -doc -experimental -icu -test
+media-libs/libaom examples -big-endian -debug -doc -test
+media-libs/libass fontconfig -libunibreak -test
+media-libs/libepoxy X -test
+media-libs/libglvnd X -test
+media-libs/libvpx highbitdepth postproc -doc -static-libs -test
+media-libs/libwebp jpeg png -gif -opengl -static-libs -swap-16bit-csp -tiff
+media-libs/mesa llvm opengl proprietary-codecs X -debug -lm-sensors -opencl -sysprof -test -unwind -vaapi -valgrind
+media-video/ffmpeg bzip2 dav1d drm fontconfig gnutls gpl libass truetype xml -amf -amr -amrenc -appkit -bluray -bs2b -cairo -cdio -chromaprint -chromium -codec2 -cuda-clang -doc -dvd -fdk -flite -frei0r -fribidi -gcrypt -gme -gmp -gsm -iec61883 -ieee1394 -jack -jpeg2k -jpegxl -kvazaar -ladspa -lame -lcms -libaom -libaribb24 -libcaca -libilbc -liblc3 -libplacebo -librtmp -libsoxr -lv2 -lzma -modplug -nvenc -ocr -openal -opencl -opencolorio -opengl -openh264 -openmpt -openssl -opus -pulseaudio -qrcode -qsv -quirc -rabbitmq -rav1e -rist -rubberband -samba -sdl -snappy -sndio -soc -speex -srt -ssh -svg -svt-av1 -theora -twolame -v4l -vaapi -vdpau -vidstab -vmaf -vorbis -vpx -webp -x264 -x265 -xvid -zeromq -zimg -zvbi
+
+## net-libs/*
+net-libs/gnutls cxx openssl post-quantum tls-heartbeat -brotli -dane -doc -examples -pkcs11 -sslv2 -sslv3 -static-libs -systemtap -test -test-full
+net-libs/libmicrohttpd epoll eventfd thread-names -debug -static-libs -test
+net-libs/libqmi mbim qrtr -gtk-doc -introspection
+net-libs/ngtcp2 openssl -gnutls
+net-libs/nodejs icu inspector npm snapshot system-ssl -debug -doc -lto -pax-kernel -system-icu -test
+
+## net-misc/*
+net-misc/chrony caps cmdmon nettle nts phc refclock rtc seccomp sechash -debug -html -libtomcrypt -nss -pps -samba
+net-misc/curl adns alt-svc ftp hsts http2 http3 httpsrr imap openssl pop3 psl quic smtp tftp websockets -brotli -debug -ech -gnutls -gopher -kerberos -ldap -mbedtls -rustls -sasl-scram -ssh -static-libs -telnet -test
+net-misc/dhcpcd embedded ipv6 -debug -privsep
+net-misc/iputils arping caps filecaps suid -clockdiff -doc -test -tracepath
+net-misc/modemmanager introspection mbim qmi qrtr -gtk-doc -policykit -test -vala
+net-misc/netifrc dhcp
+net-misc/networkmanager audit concheck introspection modemmanager nss ppp wext wifi -bluetooth -connection-sharing -debug -dhclient -dhcpcd -gnutls -gtk-doc -iptables -iwd -libedit -nbft -nftables -ofono -ovs -policykit -psl -resolvconf -syslog -teamd -test -vala
+net-misc/openssh audit seccomp -debug -kerberos -ldns -libedit -livecd -security-key -static -test
+net-misc/rsync iconv xxhash -examples -lz4 -rrsync -stunnel -system-zlib -test
+net-misc/wget pcre -cookie-check -debug -gnutls -libproxy -metalink -ntlm -static -test -uuid
+net-wireless/wpa_supplicant ap fils mbo mesh -broadcom-sta -eap-sim -eapol-test -gui -macsec -p2p -privsep -smartcard -tkip -uncommon-eap-types -wep -wps
+
+sec-policy/selinux-base ubac unconfined unknown-perms -doc
+sec-policy/selinux-base-policy unconfined
+
+## sys-apps/
+sys-apps/coreutils caps openssl -gmp -hostname -kill -multicall -split-usr -static -test -test-full -vanilla
+sys-apps/elfix xtpax -ptpax -test
+sys-apps/file bzip2 seccomp -lzip -lzma -python -static-libs
+sys-apps/gawk mpfr -pma
+sys-apps/grep egrep-fgrep pcre -static -test-full
+sys-apps/iproute2 caps iptables -atm -berkdb -bpf -elf -minimal -nfs
+sys-apps/kbd bzip2 -lzma -test -xkb
+sys-apps/kmod lzma -debug -doc -pkcs7
+sys-apps/less pcre -test
+sys-apps/man-db manpager seccomp -static-libs
+sys-apps/net-tools arp hostname ipv6 -nis -plipconfig -slattach -static
+sys-apps/openrc audit netifrc sysvinit -bash -debug -newnet -s6 -sysv-utils
+sys-apps/pciutils kmod -dns -static-libs
+sys-apps/policycoreutils audit -split-usr
+sys-apps/portage ipc native-extensions rsync-verify -apidoc -build -doc -gentoo-dev -test
+sys-apps/sandbox nnp
+sys-apps/shadow audit -skey -split-usr -su -test
+sys-apps/systemd-utils kmod sysctl tmpfiles -boot -kernel-install -secureboot -split-usr -sysusers -test -ukify
+sys-apps/texinfo standalone -static -test
+sys-apps/util-linux audit caps cramfs hardlink logger su suid -build -cryptsetup -fdformat -kill -magic -python -rtas -slang -static-libs -test -tty-helpers -uuidd
+
+sys-auth/pambase caps nullok passwdqc yescrypt -debug -homed -minimal -mktemp -pam_krb5 -pam_ssh -pwhistory -pwquality -securetty -sha512 -sssd
+sys-auth/passwdqc audit
+sys-auth/seatd builtin server
+
+## sys-devel/*
+sys-devel/binutils cet debuginfod plugins -doc -gprofng -multitarget -pgo -static-libs -test -vanilla -xxhash
+sys-devel/binutils-config native-symlinks
+sys-devel/gcc cet cxx default-stack-clash-protection default-znow fortran openmp pie sanitize ssp -ada -cobol -custom-cflags -d -debug -doc -fixed-point -go -graphite -ieee-long-double -libgdiagnostics -libssp -modula2 -objc -objc++ -objc-gc -pch -pgo -rust -systemtap -test -time64 -valgrind -vanilla -vtv
+sys-devel/gcc-config cc-wrappers native-symlinks
+sys-devel/gettext cxx openmp -doc -emacs -git -java -static-libs
+
+## sys-fs/*
+sys-fs/btrfs-progs convert man -experimental -reiserfs -static -static-libs
+sys-fs/cryptsetup argon2 openssl -fips -gcrypt -kernel -nettle -passwdqc -pwquality -ssh -static -static-libs -test -urandom
+sys-fs/dosfstools iconv -compat -test
+
+## sys-kernel/*
+sys-kernel/linux-firmware initramfs redistributable -bindist -compress-xz -compress-zstd -deduplicate -dist-kernel -savedconfig
+
+## sys-libs/*
+sys-libs/binutils-libs cet -64-bit-bfd -multitarget -static-libs -test
+sys-libs/gdbm berkdb -static-libs -test
+sys-libs/glibc audit caps cet multiarch ssp stack-realign static-libs -clang -compile-locales -custom-cflags -doc -gd -hash-sysv-compat -headers-only -multilib-bootstrap -nscd -perl -profile -sframe -suid -systemtap -test -vanilla
+sys-libs/libselinux python -debug -ruby -static-libs
+sys-libs/libsepol static-libs
+sys-libs/libxcrypt compat system -headers-only -static-libs -test
+sys-libs/ncurses cxx stack-realign tinfo -ada -debug -doc -gpm -minimal -profile -split-usr -static-libs -test -trace
+sys-libs/pam audit -berkdb -debug -examples -nis
+sys-libs/slang pcre -cjk -png -static-libs
+sys-process/audit python -build -gssapi -io-uring -ldap -split-usr -static-libs
+sys-process/cronie anacron audit inotify
+sys-process/procps kill -modern-top -skill -static-libs -test
+
+virtual/pkgconfig native-symlinks
+
+www-client/firefox clang jumbo-build system-av1 system-harfbuzz system-icu system-jpeg system-libevent system-libvpx system-webp telemetry -debug -eme-free -gmp-autoupdate -gnome-shell -hwaccel -jack -libproxy -openh264 -pgo -pulseaudio -sndio -system-pipewire -system-png -test -wasm-sandbox -wifi
+
+# x11-*
+# x11-base/xorg-server xorg -debug -minimal -suid -test -unwind -xcsecurity -xephyr -xnest -xvfb
+x11-base/xwayland -libei -test -unwind -xcsecurity
+x11-libs/cairo glib -aqua -debug -gtk-doc -lzo -test
+x11-libs/gdk-pixbuf introspection -gif -gtk-doc -jpeg -test -tiff
+x11-libs/gtk+ introspection -aqua -broadway -cloudproviders -colord -cups -examples -gtk-doc -sysprof -test -vim-syntax -xinerama
+x11-libs/libSM uuid -doc
+x11-libs/libXfont2 bzip2 -doc -truetype
+x11-libs/libxcb xkb -doc -test
+x11-libs/pango introspection -debug -examples -gtk-doc -libthai -sysprof -test
