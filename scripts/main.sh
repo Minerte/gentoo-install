@@ -89,7 +89,6 @@ function main_install_gentoo_in_chroot() {
 	dev-util/vulkan-headers dev-util/vulkan-tools dev-util/vulkan-utility-libraries \
 	media-libs/mesa media-libs/shaderc media-libs/vulkan-loader x11-drivers/xf86-video-nouveau
 
-
 	echo "Installing for DWL"
 	try emerge --verbose app-editors/neovim gui-apps/foot gui-apps/grim \
 	gui-apps/slurp gui-apps/wl-clipboard gui-apps/wmenu gui-apps/wlroots \
