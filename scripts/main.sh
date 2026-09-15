@@ -74,7 +74,15 @@ function main_install_gentoo_in_chroot() {
     echo "merging filesystem"
     try emerge --verbose sys-fs/cryptsetup sys-fs/btrfs-progs \
         sys-fs/e2fsprogs sys-fs/dosfstools app-crypt/gnupg \
-        app-arch/zstd sys-boot/efibootmgr sys-apps/util-linux
+        app-arch/zstd sys-apps/util-linux
+
+	# For more info goto : https://packages.gentoo.org/categories/sec-policy
+	echo "installing policy for selinux"
+	try emerge --verbose sec-policy/selinux-alsa sec-policy/selinux-chronyd \
+	sec-policy/selinux-dbus sec-policy/selinux-mozilla sec-policy/selinux-networkmanager \
+	sec-policy/selinux-openrc sec-policy/selinux-policykit sec-policy/selinux-qemu \
+	sec-policy/selinux-seatd sec-policy/selinux-sudo sec-policy/selinux-tor \
+	sec-policy/selinux-wayland
 
     install_kernel
 
