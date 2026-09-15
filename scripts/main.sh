@@ -47,16 +47,16 @@ function main_install_gentoo_in_chroot() {
     einfo "/efi/Gentoo created"
 
     echo "Adding EFI UUID TO fstab"
-    echo "UUID=$CHROOT_EFI_UUID  /efi     vfat   defaults,noatime                                             0 2" >> /etc/fstab
+    echo "UUID=$CHROOT_EFI_UUID  /efi    vfat   defaults,noatime                                                  0 2" >> /etc/fstab
 
-    einfo "Syncing portage tree using emerge-webrsync"
-    try emerge-webrsync
     sleep 5
     einfo "Syncing portage tree using emerge --sync"
     try emerge --sync --quiet
+	einfo "emerge --sync -quiet run done"
 
+	sleep 5
     configure_system
-
+	sleep 5
     einfo "Adding cpuflags"
     try emerge --oneshot app-portage/cpuid2cpuflags
     sleep 5
@@ -72,9 +72,29 @@ function main_install_gentoo_in_chroot() {
     try emerge --emptytree -1 @installed
 
     echo "merging filesystem"
-    try emerge --verbose sys-fs/cryptsetup sys-fs/btrfs-progs \
-        sys-fs/e2fsprogs sys-fs/dosfstools app-crypt/gnupg \
-        app-arch/zstd sys-apps/util-linux
+    try emerge --verbose app-arch/zstd app-crypt/gnupg sys-apps/util-linux \
+	sys-fs/btrfs-progs sys-fs/cryptsetup sys-fs/dosfstools sys-fs/e2fsprogs
+
+    install_kernel
+
+    echo "Emerging tools"
+    try emerge --verbose app-admin/sysklogd app-shells/bash-completion dev-vcs/git \
+	net-misc/chrony net-misc/networkmanager sys-apps/mlocate sys-auth/seatd \
+	sys-block/io-scheduler-udev-rules sys-process/cronie
+
+    enable_service
+
+    echo "Emerging graphics drivers and Vulkan support"
+    try emerge --verbose dev-util/glslang dev-util/spirv-headers dev-util/spirv-tools \
+	dev-util/vulkan-headers dev-util/vulkan-tools dev-util/vulkan-utility-libraries \
+	media-libs/mesa media-libs/shaderc media-libs/vulkan-loader x11-drivers/xf86-video-nouveau
+
+
+	echo "Installing for DWL"
+	try emerge --verbose app-editors/neovim gui-apps/foot gui-apps/grim \
+	gui-apps/slurp gui-apps/wl-clipboard gui-apps/wmenu gui-apps/wlroots \
+	media-fonts/jetbrains-mono media-sound/pavucontrol media-video/pipewire \
+	www-client/firefox
 
 	# For more info goto : https://packages.gentoo.org/categories/sec-policy
 	echo "installing policy for selinux"
@@ -83,22 +103,6 @@ function main_install_gentoo_in_chroot() {
 	sec-policy/selinux-openrc sec-policy/selinux-policykit sec-policy/selinux-qemu \
 	sec-policy/selinux-seatd sec-policy/selinux-sudo sec-policy/selinux-tor \
 	sec-policy/selinux-wayland
-
-    install_kernel
-
-    echo "Emerging tools"
-    try emerge --verbose sys-block/io-scheduler-udev-rules \
-        sys-apps/mlocate dev-vcs/git net-misc/networkmanager \
-        app-shells/bash-completion net-misc/chrony app-admin/sysklogd \
-        sys-process/cronie sys-auth/seatd
-
-    enable_service
-
-    echo "Emerging graphics drivers and Vulkan support"
-    try emerge --verbose x11-drivers/xf86-video-nouveau media-libs/mesa \
-        media-libs/vulkan-loader dev-util/vulkan-tools dev-util/vulkan-headers \
-        dev-util/spirv-tools dev-util/spirv-headers media-libs/shaderc \
-        dev-util/vulkan-utility-libraries dev-util/glslang
 
     echo "Set root password"
     try passwd
@@ -147,8 +151,8 @@ EOF
 function install_kernel() {
     echo "compile kernel"
     try emerge --oneshot --nodeps app-arch/cpio
-    try emerge --verbose sys-kernel/gentoo-sources sys-kernel/installkernel sys-kernel/linux-firmware \
-        sys-firmware/sof-firmware sys-apps/pciutils app-portage/gentoolkit
+    try emerge --verbose app-portage/gentoolkit sys-apps/pciutils sys-firmware/sof-firmware \
+	sys-kernel/gentoo-sources sys-kernel/installkernel sys-kernel/linux-firmware
 
     echo "Selecting kernel to set 1"
     try eselect kernel set 1 \
