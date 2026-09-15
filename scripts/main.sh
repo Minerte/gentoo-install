@@ -258,11 +258,11 @@ modules = [
     "ugrd.kmod.usb"
 ]
 
-mount_timeout = 5
-
-keymap_file = "/usr/share/keymaps/i386/qwerty/sv-latin1.map.gz"
-
 auto_mounts = ['/efi']
+late_resume = true
+
+mount_timeout = 5
+keymap_file = "/usr/share/keymaps/i386/qwerty/sv-latin1.map.gz"
 
 # [mounts.efi]
 # uuid = "$efi_uuid"
@@ -272,8 +272,6 @@ auto_mounts = ['/efi']
 uuid = "$swap_uuid"
 key_type = "gpg"
 key_file = "/efi/cryptswap_key.luks.gpg"
-
-late_resume = true
 
 [cryptsetup."$LUKS_ROOT_NAME"]
 uuid = "$root_uuid"
