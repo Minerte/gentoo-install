@@ -1,5 +1,7 @@
 app-accessibility/at-spi2-core introspection
 app-admin/sudo secure-path sendmail
+
+# app-alternatives/*
 app-alternatives/awk gawk
 app-alternatives/bc gnu
 app-alternatives/bzip2 lbzip2
@@ -11,31 +13,44 @@ app-alternatives/ninja reference
 app-alternatives/sh bash
 app-alternatives/tar gnu
 app-alternatives/yacc bison
+
+# app-arch/*
 app-arch/gzip pic
 app-arch/libarchive bzip2 e2fsprogs iconv lzma
 app-arch/unzip bzip2
 app-arch/xz-utils extra-filters
 app-arch/zip bzip2
 app-arch/zstd lzma
+
 app-crypt/gnupg alternatives bzip2 smartcard tofu
 app-crypt/libb2 openmp
 app-crypt/pinentry caps
+
 app-editors/nano spell
 app-editors/neovim nvimpager
+
 app-misc/pax-utils caps
+
 app-portage/gemato gpg
 app-portage/portage-utils openmp qmanifest
+
 app-shells/bash net pgo
 app-shells/bash-completion eselect
+
 app-text/texlive-core luajittex
 app-text/xmlto latex
+
 dev-cpp/eigen openmp
+
+# dev-lang/*
 dev-lang/lua deprecated
 dev-lang/perl gdbm
 dev-lang/python ensurepip gdbm sqlite
 dev-lang/python-exec native-symlinks
 dev-lang/rust-bin clippy doc rust-analyzer rustfmt
 dev-lang/swig pcre
+
+# dev-libs/*
 dev-libs/elfutils bzip2 debuginfod libarchive lzma
 dev-libs/glib elf introspection mime
 dev-libs/gmp asm cpudetection cxx pic
@@ -52,27 +67,38 @@ dev-libs/nettle asm gmp
 dev-libs/openssl asm quic
 dev-libs/ptexenc iconv
 dev-libs/simdjson all-impls
+
 app-editors/neovim lua_single_target_luajit
+
+# dev-libs/*
 dev-lua/luv lua_single_target_luajit -lua_single_target_lua5-4
 dev-lua/mpack lua_targets_luajit lua_single_target_luajit
 dev-lua/lpeg lua_targets_luajit lua_single_target_luajit
 dev-lua/lua-cjson internal-fpconv
+
 dev-perl/File-HomeDir xdg
 dev-perl/List-MoreUtils xs
 dev-perl/Ref-Util xs
+
+# dev-python/*
 dev-python/ensurepip-pip test-rust
 dev-python/markupsafe native-extensions
 dev-python/pillow jpeg
 dev-python/pygobject cairo
 dev-python/pypax xtpax
 dev-python/requests test-rust
+
 dev-texlive/texlive-basic luajittex
+
 dev-util/pkgconf native-symlinks
+
 dev-vcs/git gpg iconv pcre perl rust safe-directory webdav
-gnome-base/librsvg introspection vala
+
 gui-apps/foot grapheme-clustering
 gui-libs/gtk introspection
 gui-libs/wlroots drm libinput x11-backend
+
+# llvm-*
 llvm-core/clang extra pie static-analyzer
 llvm-core/clang-common cet
 llvm-core/llvm binutils-plugin libffi
@@ -80,6 +106,8 @@ llvm-runtimes/clang-runtime compiler-rt openmp sanitize
 llvm-runtimes/compiler-rt atomic-builtins clang
 llvm-runtimes/compiler-rt-sanitizers asan cfi clang ctx-profile dfsan gwp-asan hwasan libfuzzer lsan memprof msan nsan profile rtsan safestack scudo tsan ubsan xray
 llvm-runtimes/libclc spirv
+
+# media-*
 media-libs/dav1d 8bit 10bit asm
 media-libs/fcft harfbuzz libutf8proc
 media-libs/flac cxx
@@ -101,11 +129,15 @@ media-sound/lame frontend
 media-sound/mpg123-base ipv6
 media-sound/pulseaudio-daemon alsa-plugin asyncns gdbm glib webrtc-aec
 media-video/ffmpeg bzip2 dav1d drm fontconfig gnutls gpl libass truetype xml
+
+# net-libs/*
 net-libs/gnutls cxx openssl post-quantum tls-heartbeat
 net-libs/libmicrohttpd epoll eventfd thread-names
 net-libs/libqmi mbim qrtr
 net-libs/ngtcp2 openssl
 net-libs/nodejs icu inspector npm snapshot system-ssl
+
+# net-misc/*
 net-misc/chrony caps cmdmon nettle nts phc refclock rtc seccomp sechash
 net-misc/curl adns alt-svc ftp hsts http2 http3 httpsrr imap openssl pop3 psl quic smtp tftp websockets
 net-misc/dhcpcd embedded ipv6
@@ -116,9 +148,13 @@ net-misc/networkmanager audit concheck introspection modemmanager nss ppp wext w
 net-misc/openssh audit seccomp
 net-misc/rsync iconv xxhash
 net-misc/wget pcre
+
 net-wireless/wpa_supplicant ap fils mbo mesh
+
 sec-policy/selinux-base ubac unconfined unknown-perms
 sec-policy/selinux-base-policy unconfined
+
+# sys-apps/*
 sys-apps/coreutils caps openssl
 sys-apps/elfix xtpax
 sys-apps/file bzip2 seccomp
@@ -139,18 +175,27 @@ sys-apps/shadow audit
 sys-apps/systemd-utils kmod sysctl tmpfiles
 sys-apps/texinfo standalone
 sys-apps/util-linux audit caps cramfs hardlink logger su suid
+
+# sys-auth/*
 sys-auth/pambase caps nullok passwdqc yescrypt
 sys-auth/passwdqc audit
 sys-auth/seatd builtin server
+
+# sys-devel/*
 sys-devel/binutils cet debuginfod plugins
 sys-devel/binutils-config native-symlinks
 sys-devel/gcc cet cxx default-stack-clash-protection default-znow fortran openmp pie sanitize ssp
 sys-devel/gcc-config cc-wrappers native-symlinks
 sys-devel/gettext cxx openmp
+
+# sys-fs/*
 sys-fs/btrfs-progs convert man
 sys-fs/cryptsetup argon2 openssl
 sys-fs/dosfstools iconv
+
 sys-kernel/linux-firmware initramfs redistributable
+
+# sys-libs/*
 sys-libs/binutils-libs cet
 sys-libs/gdbm berkdb
 sys-libs/glibc audit caps cet multiarch ssp stack-realign static-libs
@@ -159,11 +204,16 @@ sys-libs/libxcrypt compat system
 sys-libs/ncurses cxx stack-realign tinfo
 sys-libs/pam audit
 sys-libs/slang pcre
+
 sys-process/audit python
 sys-process/cronie anacron audit inotify
 sys-process/procps kill
+
 virtual/pkgconfig native-symlinks
+
 www-client/firefox clang jumbo-build llvm_slot_21 system-av1 system-harfbuzz system-icu system-jpeg system-libevent system-libvpx system-webp telemetry
+
+# x11-*
 x11-base/xorg-server xorg
 x11-libs/cairo glib
 x11-libs/gdk-pixbuf introspection
