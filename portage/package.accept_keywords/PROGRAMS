@@ -1,1 +1,5 @@
 dev-python/sphinx ~amd64
+app-editors/neovim ~amd64
+dev-lua/luv ~amd64
+dev-libs/tree-sitter-markdown-inline ~amd64
+dev-libs/tree-sitter-c ~amd64
