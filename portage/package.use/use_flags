@@ -52,6 +52,11 @@ dev-libs/nettle asm gmp
 dev-libs/openssl asm quic
 dev-libs/ptexenc iconv
 dev-libs/simdjson all-impls
+app-editors/neovim lua_single_target_luajit
+dev-lua/luv lua_single_target_luajit -lua_single_target_lua5-4
+dev-lua/mpack lua_targets_luajit lua_single_target_luajit
+dev-lua/lpeg lua_targets_luajit lua_single_target_luajit
+dev-lua/lua-cjson internal-fpconv
 dev-perl/File-HomeDir xdg
 dev-perl/List-MoreUtils xs
 dev-perl/Ref-Util xs
@@ -84,10 +89,12 @@ media-libs/graphene introspection
 media-libs/harfbuzz cairo glib graphite icu introspection truetype
 media-libs/libaom examples
 media-libs/libass fontconfig
+media-libs/libepoxy X
+media-libs/libglvnd X
 media-libs/libpulse asyncns glib
 media-libs/libvpx highbitdepth postproc
 media-libs/libwebp gif jpeg png
-media-libs/mesa llvm opengl proprietary-codecs
+media-libs/mesa llvm opengl proprietary-codecs X
 media-libs/tiff cxx
 media-plugins/alsa-plugins mix pulseaudio usb_stream
 media-sound/lame frontend
@@ -147,7 +154,6 @@ sys-kernel/linux-firmware initramfs redistributable
 sys-libs/binutils-libs cet
 sys-libs/gdbm berkdb
 sys-libs/glibc audit caps cet multiarch ssp stack-realign static-libs
-sys-libs/libselinux python
 sys-libs/libsepol static-libs
 sys-libs/libxcrypt compat system
 sys-libs/ncurses cxx stack-realign tinfo
@@ -157,7 +163,7 @@ sys-process/audit python
 sys-process/cronie anacron audit inotify
 sys-process/procps kill
 virtual/pkgconfig native-symlinks
-www-client/firefox clang jumbo-build system-av1 system-harfbuzz system-icu system-jpeg system-libevent system-libvpx system-webp telemetry
+www-client/firefox clang jumbo-build llvm_slot_21 system-av1 system-harfbuzz system-icu system-jpeg system-libevent system-libvpx system-webp telemetry
 x11-base/xorg-server xorg
 x11-libs/cairo glib
 x11-libs/gdk-pixbuf introspection
