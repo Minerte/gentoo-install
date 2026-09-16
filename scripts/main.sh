@@ -91,7 +91,7 @@ function main_install_gentoo_in_chroot() {
 
 	echo "Installing for DWL"
 	try emerge --verbose app-editors/neovim gui-apps/foot gui-apps/grim \
-	gui-apps/slurp gui-apps/wl-clipboard gui-apps/wmenu gui-apps/wlroots \
+	gui-apps/slurp gui-apps/wl-clipboard gui-apps/wmenu gui-libs/wlroots \
 	media-fonts/jetbrains-mono media-sound/pavucontrol media-video/pipewire \
 	www-client/firefox
 
@@ -263,9 +263,7 @@ modules = [
     "ugrd.base.keymap",
     "ugrd.crypto.cryptsetup",
     "ugrd.crypto.gpg",
-    "ugrd.fs.btrfs",
     "ugrd.fs.resume",
-    "ugrd.kmod.nvme",
     "ugrd.kmod.usb"
 ]
 
@@ -278,6 +276,9 @@ keymap_file = "/usr/share/keymaps/i386/qwerty/sv-latin1.map.gz"
 # [mounts.efi]
 # uuid = "$efi_uuid"
 # type = "vfat"
+
+[console.tty1]
+type = "tty"
 
 [cryptsetup."$LUKS_SWAP_NAME"]
 uuid = "$swap_uuid"
