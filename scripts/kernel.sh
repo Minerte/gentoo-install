@@ -56,7 +56,7 @@ function kernel_script() {
 	#   lspci -nn | grep -iE "vga|3d|display"
 	# (Ryzen 7000/9000-series iGPUs are typically 1002:1681 video +
 	# 1002:1640 audio - confirm on YOUR box and adjust if different.)
-	cmdline="root=UUID=${root_uuid} rootfstype=btrfs rootflags=subvol=activeroot resume=UUID=${swap_uuid} initrd=\\\\EFI\\\\BOOT\\\\ugrd.cpio rw loglevel=3 amd_iommu=on iommu=pt vfio-pci.ids=1002:1681,1002:1640"
+	cmdline="root=UUID=${root_uuid} rootfstype=btrfs rootflags=subvol=activeroot rootdelay=3 resume=UUID=${swap_uuid} initrd=\\\\EFI\\\\BOOT\\\\ugrd.cpio rw loglevel=3 amd_iommu=on iommu=pt vfio-pci.ids=1002:1681,1002:1640"
 
 	try ./scripts/config --enable CONFIG_CMDLINE_BOOL
 	try ./scripts/config --set-str CONFIG_CMDLINE "$cmdline"
