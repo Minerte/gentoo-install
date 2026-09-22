@@ -103,6 +103,19 @@ function main_install_gentoo_in_chroot() {
 	sec-policy/selinux-seatd sec-policy/selinux-sudo sec-policy/selinux-tor \
 	sec-policy/selinux-wayland
 
+	# --- SELINUX INITIALIZATION & RELABELING ---
+    einfo "Configuring SELinux settings"
+    cat > /etc/selinux/config << 'EOF'
+SELINUX=permissive
+SELINUXTYPE=targeted
+EOF
+
+    einfo "Relabeling filesystem contexts for SELinux"
+    try rlpkg -a -r
+
+    einfo "Rebuilding OpenRC dependency cache"
+    try rc-depend -u
+
     echo "Set root password"
     try passwd
     einfo "script completed"
