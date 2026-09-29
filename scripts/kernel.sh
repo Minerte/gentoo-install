@@ -5,21 +5,22 @@ function kernel_script() {
 	# =============================================================================
 	# Hardware:
 	#   Motherboard : ASUS ROG X670E Gene
-	#   CPU         : AMD Ryzen 9 9950X (overclocked)
-	#   RAM         : 96GB CMH96GX5M2B6000C30 (overclocked)
-	#   GPU         : RTX 3090, currently primary display via nouveau/nvk
-	#   Storage     : NVMe + SSD + USB (EFI/ESP lives on a separate USB)
+	#   CPU         : AMD Ryzen 9 9950X
+	#   RAM         : 96GB CMH96GC5M2B6000C30
+	#   GPU         : RTX 3090, primary display via nouveau/nvk
+	#   Storage     : 1x NVMe + 3x SATA SSD
+	#
+	# System:
+	#   - OpenRC, seatd (no elogind), NetworkManager, PipeWire
+	#   - SELinux, targeted policy
+	#   - DWL (wlroots) + XWayland, gaming via Steam/Proton
+	#   - Kernel version: 6.18.52 (gentoo-sources)
 	#
 	# Use-case:
-	#   - BTRFS root filesystem
-	#   - Separate /efi partition on USB, fully encrypted root disk
-	#   - ugrd initramfs with GPG-encrypted LUKS key
-	#   - DWL (wlroots Wayland compositor) + Firefox (Wayland)
-	#   - KVM/QEMU (Windows 11 guest today, VFIO passthrough of the Ryzen iGPU)
-	#   - FreeCAD / KiCad
-	#   - Gaming via Steam
+	#   - BTRFS root filesystem, fully encrypted (dm-crypt + GPG keys via ugrd)
+	#   - KVM/QEMU Windows 11 guest, VFIO passthrough of the Ryzen iGPU
 	#   - STM32 + Arduino development over USB
-	#   - Kernel version: 6.18.48 (gentoo-sources)
+	#   - Backend development + light frontend work (containers)
 	# =============================================================================
 
 	# =============================================================================
@@ -39,6 +40,11 @@ function kernel_script() {
 	try ./scripts/config --enable CONFIG_KALLSYMS || die "module do not exit CONFIG_KALLSYMS"
 	try ./scripts/config --enable CONFIG_KALLSYMS_ALL || die "module do not exit CONFIG_KALLSYMS_ALL"
 
+	# Expose the kernel config at /proc/config.gz. ugrd uses it to tell
+	# built-in modules apart from loadable ones when assembling the initramfs.
+	try ./scripts/config --enable CONFIG_IKCONFIG || die "module do not exit CONFIG_IKCONFIG"
+	try ./scripts/config --enable CONFIG_IKCONFIG_PROC || die "module do not exit CONFIG_IKCONFIG_PROC"
+
 	local root_uuid="${CHROOT_ROOT_UUID:-}"
 	local swap_uuid="${CHROOT_SWAP_UUID:-}"
 
@@ -52,10 +58,15 @@ function kernel_script() {
 	# primary display via nouveau and is NOT involved in passthrough.
 	# NOTE: CONFIG_CMDLINE_OVERRIDE is set below, so this EMBEDDED cmdline
 	# replaces anything the bootloader passes - edit the IDs HERE, not in
-	# your bootloader config. Verify the IDs with:
-	#   lspci -nn | grep -iE "vga|3d|display"
-	# (Ryzen 7000/9000-series iGPUs are typically 1002:1681 video +
-	# 1002:1640 audio - confirm on YOUR box and adjust if different.)
+	# your bootloader config.
+	#
+	# !!!! VERIFY THE PCI IDS BEFORE COMPILING !!!!
+	#   Boot the install USB and run:
+	#     lspci -nn | grep -iE "vga|3d|display"
+	#   The Granite Ridge (9950X) iGPU IDs are DIFFERENT from older
+	#   Raphael/Phoenix values - do NOT trust any online list. Bind BOTH
+	#   the graphics function and its HDMI/DP audio function, comma
+	#   separated, or audio stays on the host.
 	cmdline="root=UUID=${root_uuid} rootfstype=btrfs rootflags=subvol=activeroot rootdelay=3 initrd=\\\\EFI\\\\BOOT\\\\ugrd.cpio rw loglevel=3 amd_iommu=on iommu=pt vfio-pci.ids=1002:1681,1002:1640"
 
 	try ./scripts/config --enable CONFIG_CMDLINE_BOOL
@@ -103,6 +114,11 @@ function kernel_script() {
 	try ./scripts/config --enable CONFIG_CRYPTO_SHA512 || die "module do not exit CONFIG_CRYPTO_SHA512"
 	try ./scripts/config --enable CONFIG_CRYPTO_CRC32C || die "module do not exit CONFIG_CRYPTO_CRC32C"
 	try ./scripts/config --enable CONFIG_CRYPTO_XXHASH || die "module do not exit CONFIG_CRYPTO_XXHASH"
+
+	# Hardware AES acceleration (AES-NI). The 9950X has it; dm-crypt on the
+	# LUKS root is several times faster with this than with table AES.
+	# Works on any x86_64 CPU with AES-NI despite the "_INTEL" name.
+	try ./scripts/config --module CONFIG_CRYPTO_AES_NI_INTEL || die "module do not exit CONFIG_CRYPTO_AES_NI_INTEL"
 
 	# Intel CRC32C optimization
 	try ./scripts/config --enable CONFIG_CRC32C_INTEL || die "module do not exit CONFIG_CRC32C_INTEL"
@@ -190,11 +206,11 @@ function kernel_script() {
 
 	# Nouveau driver for the host RTX 3090. The 3090 stays on the host as
 	# the primary display and is no longer part of any passthrough setup.
-	try ./scripts/config --module CONFIG_DRM_NOUVEAU || die "Failed to set CONFIG_DRM_NOUVEAU=m"
+	try ./scripts/config --enable CONFIG_DRM_NOUVEAU || die "Failed to set CONFIG_DRM_NOUVEAU=y"
 
-	# AMD display driver (amdgpu) - the driver for the Ryzen 9 9950X iGPU
-	# (Raphael/Granite Ridge RDNA2). The iGPU is passed through to a VM and
-	# is NOT used by the host, so this MUST stay a module (=m), never =y:
+	# AMD display driver (amdgpu) - the driver for the Ryzen 9 9950X iGPU.
+	# The iGPU is passed through to the Windows 11 VM and is NOT used by the
+	# host, so this MUST stay a module (=m), never =y:
 	# vfio-pci statically claims the iGPU via vfio-pci.ids= in the kernel
 	# cmdline (see section 2), but only if amdgpu has not grabbed it first.
 	# If you ever want the iGPU on the host (e.g. debugging with the 3090
@@ -243,6 +259,7 @@ function kernel_script() {
 	try ./scripts/config --enable CONFIG_VFAT_FS || die "module do not exit CONFIG_VFAT_FS"
 	try ./scripts/config --enable CONFIG_NLS_CODEPAGE_437 || die "module do not exit CONFIG_NLS_CODEPAGE_437"
 	try ./scripts/config --enable CONFIG_NLS_ISO8859_1 || die "module do not exit CONFIG_NLS_ISO8859_1"
+	try ./scripts/config --enable CONFIG_NLS_UTF8 || die "module do not exit CONFIG_NLS_UTF8"
 
 	# =============================================================================
 	# 16. AMD Platform: Ryzen 9 9950X + X670E Gene
@@ -252,7 +269,7 @@ function kernel_script() {
 	try ./scripts/config --enable CONFIG_AMD_PMC || die "module do not exit CONFIG_AMD_PMC"
 
 	# AMD P-State driver (preferred for Zen 4/5)
-	try ./scripts/config --enable CONFIG_X86_AMD_PSTATE_UT || die "module do not exit CONFIG_AMD_PSTATE_UT"
+	try ./scripts/config --enable CONFIG_X86_AMD_PSTATE_UT || die "module do not exit CONFIG_X86_AMD_PSTATE_UT"
 	try ./scripts/config --enable CONFIG_X86_AMD_PSTATE || die "module do not exit CONFIG_X86_AMD_PSTATE"
 
 	# CPU temperature monitoring
@@ -288,19 +305,19 @@ function kernel_script() {
 	try ./scripts/config --enable CONFIG_SND_VERBOSE_PROCFS || die "module do not exit CONFIG_SND_VERBOSE_PROCFS"
 
 	# Actual hardware drivers. Core SND alone produces no audio device.
-	# X670E Gene onboard audio is HD-Audio (Realtek codec); also enable USB
-	# audio for any USB DAC/headset/interface, and HDMI audio in case you
-	# ever route sound through a GPU's HDMI/DP output.
+	# IMPORTANT: the X670E Gene's onboard "Realtek ALC4080" codec does NOT
+	# sit on the HD-Audio bus - it enumerates as a USB audio device. Your
+	# actual output device comes from CONFIG_SND_USB_AUDIO below.
+	# CONFIG_SND_HDA_INTEL/HDMI covers the RTX 3090's HDMI audio outputs.
 	try ./scripts/config --module CONFIG_SND_HDA_INTEL || die "module do not exit CONFIG_SND_HDA_INTEL"
-	try ./scripts/config --enable CONFIG_SND_HDA_CODEC_REALTEK || die "module do not exit CONFIG_SND_HDA_CODEC_REALTEK"
-	try ./scripts/config --enable CONFIG_SND_HDA_CODEC_HDMI || die "module do not exit CONFIG_SND_HDA_CODEC_HDMI"
-	try ./scripts/config --enable CONFIG_SND_HDA_INPUT_BEEP || die "module do not exit CONFIG_SND_HDA_INPUT_BEEP"
+	try ./scripts/config --module CONFIG_SND_HDA_CODEC_REALTEK || die "module do not exit CONFIG_SND_HDA_CODEC_REALTEK"
+	try ./scripts/config --module CONFIG_SND_HDA_CODEC_HDMI || die "module do not exit CONFIG_SND_HDA_CODEC_HDMI"
+	try ./scripts/config --module CONFIG_SND_HDA_INPUT_BEEP || die "module do not exit CONFIG_SND_HDA_INPUT_BEEP"
 	try ./scripts/config --module CONFIG_SND_USB_AUDIO || die "module do not exit CONFIG_SND_USB_AUDIO"
-	# Verify the exact HD-Audio codec after boot with: cat /proc/asound/card0/codec#0
-	# and adjust CONFIG_SND_HDA_CODEC_* if it's not Realtek.
+	# Verify the real devices after boot with: cat /proc/asound/cards
 
 	# =============================================================================
-	# 18. KVM / QEMU Virtualization (many VMs)
+	# 18. KVM / QEMU Virtualization
 	# =============================================================================
 	# Core KVM support
 	try ./scripts/config --enable CONFIG_KVM || die "module do not exit CONFIG_KVM"
@@ -335,13 +352,14 @@ function kernel_script() {
 	# 19b. Host Networking Hardware (NIC + WiFi)
 	# =============================================================================
 	# Nothing below is passthrough-related - this is what gets your HOST online.
-	# X670E Gene boards typically ship a Realtek RTL8125 2.5GbE controller
-	# (sometimes an Intel I225-V) plus a MediaTek MT7922/MT7921 WiFi 6E +
-	# Bluetooth combo. Confirm your exact chips with `lspci -nn | grep -iE
+	# X670E Gene: Intel I226-V 2.5GbE (igc) AND Marvell AQC113 AQtion 10GbE
+	# (aqtion) onboard, plus a MediaTek MT7922/MT7921 WiFi 6E + Bluetooth
+	# combo. Confirm your exact chips with `lspci -nn | grep -iE
 	# "ethernet|network"` before relying on this list, and drop whichever
 	# driver doesn't match.
-	try ./scripts/config --module CONFIG_R8169 || die "module do not exit CONFIG_R8169"
 	try ./scripts/config --module CONFIG_IGC || die "module do not exit CONFIG_IGC"
+	try ./scripts/config --module CONFIG_AQTION || die "module do not exit CONFIG_AQTION"
+	try ./scripts/config --module CONFIG_R8169 || die "module do not exit CONFIG_R8169"
 	try ./scripts/config --enable CONFIG_WLAN || die "module do not exit CONFIG_WLAN"
 	try ./scripts/config --enable CONFIG_CFG80211 || die "module do not exit CONFIG_CFG80211"
 	try ./scripts/config --enable CONFIG_MAC80211 || die "module do not exit CONFIG_MAC80211"
@@ -357,7 +375,7 @@ function kernel_script() {
 	# FTDI, CP210x, or CH34x USB-serial bridges instead - enabling all of
 	# them costs nothing and saves guessing later.
 	try ./scripts/config --module CONFIG_USB_ACM || die "module do not exit CONFIG_USB_ACM"
-	try ./scripts/config --enable CONFIG_USB_SERIAL || die "module do not exit CONFIG_USB_SERIAL"
+	try ./scripts/config --module CONFIG_USB_SERIAL || die "module do not exit CONFIG_USB_SERIAL"
 	try ./scripts/config --module CONFIG_USB_SERIAL_FTDI_SIO || die "module do not exit CONFIG_USB_SERIAL_FTDI_SIO"
 	try ./scripts/config --module CONFIG_USB_SERIAL_CP210X || die "module do not exit CONFIG_USB_SERIAL_CP210X"
 	try ./scripts/config --module CONFIG_USB_SERIAL_CH341 || die "module do not exit CONFIG_USB_SERIAL_CH341"
@@ -374,6 +392,16 @@ function kernel_script() {
 	try ./scripts/config --enable CONFIG_IA32_EMULATION || die "module do not exit CONFIG_IA32_EMULATION"
 	try ./scripts/config --enable CONFIG_COMPAT || die "module do not exit CONFIG_COMPAT"
 	try ./scripts/config --enable CONFIG_COMPAT_32BIT_TIME || die "module do not exit CONFIG_COMPAT_32BIT_TIME"
+
+	# HARD REQUIREMENT for Steam/Proton: the Steam client launches its games
+	# through bubblewrap, which refuses to run without seccomp filter
+	# support. Without these, Steam itself won't start.
+	try ./scripts/config --enable CONFIG_SECCOMP || die "module do not exit CONFIG_SECCOMP"
+	try ./scripts/config --enable CONFIG_SECCOMP_FILTER || die "module do not exit CONFIG_SECCOMP_FILTER"
+
+	# Wine/Proton register PE-binary handlers through binfmt_misc.
+	try ./scripts/config --enable CONFIG_BINFMT_MISC || die "module do not exit CONFIG_BINFMT_MISC"
+
 	# uinput: Steam Input / Proton controller emulation, and Wayland tools
 	# like ydotool/wtype that DWL setups commonly rely on.
 	try ./scripts/config --module CONFIG_INPUT_UINPUT || die "module do not exit CONFIG_INPUT_UINPUT"
@@ -470,6 +498,10 @@ function kernel_script() {
 	try ./scripts/config --enable CONFIG_9P_FS_POSIX_ACL || die "module do not exit CONFIG_9P_FS_POSIX_ACL"
 	try ./scripts/config --enable CONFIG_9P_FS_SECURITY || die "module do not exit CONFIG_9P_FS_SECURITY"
 	try ./scripts/config --enable CONFIG_FUSE_FS || die "module do not exit CONFIG_FUSE_FS"
+
+	# OverlayFS: used by container runtimes (podman/docker) - handy for
+	# backend/frontend development work.
+	try ./scripts/config --enable CONFIG_OVERLAY_FS || die "module do not exit CONFIG_OVERLAY_FS"
 
 	# =============================================================================
 	# 24. Memory Management for VMs
@@ -595,6 +627,33 @@ function kernel_script() {
 	try ./scripts/config --enable CONFIG_INIT_ON_FREE_DEFAULT_ON || die "module do not exit CONFIG_INIT_ON_FREE_DEFAULT_ON"
 
 	# =============================================================================
+	# 34b. SELinux (targeted policy) + Audit
+	# =============================================================================
+	# The entire system is built with USE="selinux" (make.conf) and boots with
+	# SELINUXTYPE=targeted (main.sh). Without these options the kernel has NO
+	# SELinux support at all: no labeling, and `rlpkg -a -r` in the install
+	# script silently does nothing.
+	try ./scripts/config --enable CONFIG_SECURITY || die "module do not exit CONFIG_SECURITY"
+	try ./scripts/config --enable CONFIG_SECURITYFS || die "module do not exit CONFIG_SECURITYFS"
+	try ./scripts/config --enable CONFIG_SECURITY_SELINUX || die "module do not exit CONFIG_SECURITY_SELINUX"
+	try ./scripts/config --enable CONFIG_SECURITY_SELINUX_BOOTPARAM || die "module do not exit CONFIG_SECURITY_SELINUX_BOOTPARAM"
+	# REQUIRED for permissive mode: main.sh boots with SELINUX=permissive
+	# first, which is only possible when SELinux is compiled with
+	# permissive-runtime support.
+	try ./scripts/config --enable CONFIG_SECURITY_SELINUX_DEVELOP || die "module do not exit CONFIG_SECURITY_SELINUX_DEVELOP"
+	try ./scripts/config --enable CONFIG_SECURITY_SELINUX_AVC_STATS || die "module do not exit CONFIG_SECURITY_SELINUX_AVC_STATS"
+
+	# AVC denials, auditd (USE="audit" throughout the system) and
+	# NetworkManager's audit support all go through the audit subsystem.
+	try ./scripts/config --enable CONFIG_AUDIT || die "module do not exit CONFIG_AUDIT"
+	try ./scripts/config --enable CONFIG_AUDITSYSCALL || die "module do not exit CONFIG_AUDITSYSCALL"
+
+	# SELinux labels tmpfs (and checks ACLs there): /dev, /run and /dev/shm
+	# are all tmpfs on an OpenRC system, and restorecon relabels them.
+	try ./scripts/config --enable CONFIG_TMPFS_XATTR || die "module do not exit CONFIG_TMPFS_XATTR"
+	try ./scripts/config --enable CONFIG_TMPFS_POSIX_ACL || die "module do not exit CONFIG_TMPFS_POSIX_ACL"
+
+	# =============================================================================
 	# 35. Slab allocator
 	# =============================================================================
 	try ./scripts/config --enable CONFIG_SLUB || die "module do not exit CONFIG_SLUB"
@@ -612,47 +671,54 @@ function kernel_script() {
 	# =============================================================================
 	try ./scripts/config --enable CONFIG_DEVTMPFS || die "Failed to set CONFIG_DEVTMPFS"
 	try ./scripts/config --enable CONFIG_DEVTMPFS_MOUNT || die "Failed to set CONFIG_DEVTMPFS_MOUNT"
-	
+
 	# =============================================================================
 	# END OF CONFIGURATION
 	# =============================================================================
 	# Post-build notes:
-	#   1. Add to /etc/modprobe.d/kvm.conf:
+	#   1. SELinux: kernel support is now compiled in (section 34b). The
+	#      system boots permissive per main.sh; flip to enforcing in
+	#      /etc/selinux/config after you've audited a few days of AVCs.
+	#
+	#   2. Add to /etc/modprobe.d/kvm.conf:
 	#        options kvm_amd nested=1
 	#
-	#   2. Ryzen 9 9950X iGPU passthrough (the RTX 3090 stays on the host as
-	#      the primary display and is no longer involved in passthrough):
+	#   3. Ryzen 9 9950X iGPU passthrough (the RTX 3090 stays on the host as
+	#      the primary display and is not involved in passthrough):
 	#      - Enable the iGPU in BIOS first: Advanced -> NB Configuration ->
 	#        Integrated Graphics = Enabled, and set Primary Display = PCIE
 	#        so the 3090 keeps driving the host console. If the iGPU does
 	#        not appear in `lspci`, this BIOS setting is the reason.
 	#      - The kernel cmdline is EMBEDDED (CONFIG_CMDLINE_OVERRIDE), so
 	#        the iommu/vfio options live in this script's cmdline variable
-	#        (section 2). Verify YOUR PCI IDs after first boot and fix them
-	#        there:
+	#        (section 2). VERIFY YOUR PCI IDS on the install USB BEFORE
+	#        compiling this kernel:
 	#          lspci -nn | grep -iE "vga|3d|display"
-	#        Ryzen 7000/9000-series iGPUs are typically 1002:1681 (graphics)
-	#        plus 1002:1640 (HDMI/DP audio) - you MUST bind BOTH functions
-	#        or the audio device stays on the host.
+	#        Granite Ridge (9950X) iGPU IDs differ from older Raphael values -
+	#        you MUST bind BOTH the graphics function and its HDMI/DP audio
+	#        function or the audio device stays on the host.
 	#      - Both amdgpu and vfio-pci are modules, so load order matters.
 	#        Create /etc/modprobe.d/vfio.conf with:
 	#          options vfio-pci ids=1002:1681,1002:1640
 	#          softdep amdgpu pre: vfio-pci
-	#        (vfio-pci.ids= is already on the embedded cmdline; the file
-	#        makes binding robust and the softdep guarantees vfio-pci
-	#        claims the iGPU before amdgpu can ever probe it).
+	#        (use YOUR verified IDs, not these placeholders.)
 	#      - Do NOT add vfio-pci or the iGPU IDs to ugrd: the GPG passphrase
 	#        prompt runs on simpledrm/EFI framebuffer via the 3090, and
 	#        grabbing the iGPU inside the initramfs buys you nothing.
-	#      - Bonus: the Raphael/Granite Ridge iGPU has a working function-
-	#        level reset, so the AMD vendor-reset workaround older cards
-	#        needed does not apply - rebinding after a VM exits is clean.
+	#      - Bonus: the Granite Ridge iGPU has a working function-level
+	#        reset, so the AMD vendor-reset workaround older cards needed
+	#        does not apply - rebinding after a VM exits is clean.
 	#
-	#   3. Verify the real NIC/WiFi/audio chips with `lspci -nn` after first
+	#   4. Onboard audio: the Gene's ALC4080 shows up as a USB audio device
+	#      (CONFIG_SND_USB_AUDIO), not HD-Audio. The RTX 3090's HDMI outputs
+	#      show up as HD-Audio + HDMI codec devices. Pick outputs in
+	#      pavucontrol accordingly.
+	#
+	#   5. Verify the real NIC/WiFi/audio chips with `lspci -nn` after first
 	#      boot and prune whichever driver in sections 17/19b doesn't match.
 	#
-	#   4. Steam/Proton also needs 32-bit userspace libraries, not just the
-	#      kernel's IA32_EMULATION. Add ABI_X86="32 64" to make.conf so
-	#      Portage builds 32-bit variants of mesa/audio/etc.
+	#   6. Steam/Proton also needs 32-bit userspace libraries, not just the
+	#      kernel's IA32_EMULATION. ABI_X86="32 64" is already in make.conf,
+	#      so Portage builds 32-bit variants of mesa/audio/etc.
 	# =============================================================================
 }
