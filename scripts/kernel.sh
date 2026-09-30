@@ -67,7 +67,14 @@ function kernel_script() {
 	#   Raphael/Phoenix values - do NOT trust any online list. Bind BOTH
 	#   the graphics function and its HDMI/DP audio function, comma
 	#   separated, or audio stays on the host.
-	cmdline="root=UUID=${root_uuid} rootfstype=btrfs rootflags=subvol=activeroot rootdelay=3 initrd=\\\\EFI\\\\BOOT\\\\ugrd.cpio rw loglevel=3 amd_iommu=on iommu=pt vfio-pci.ids=1002:1681,1002:1640"
+	# resume=UUID= points at the swap filesystem INSIDE the decrypted LUKS
+	# (that is exactly what CHROOT_SWAP_UUID resolves to in
+	# fulldisk_encryption.sh). The kernel itself cannot see inside LUKS, so
+	# ugrd (ugrd.fs.resume module, already in your ugrd config) opens
+	# cryptswap first, then echoes this device into /sys/power/resume.
+	# rootdelay=5 instead of 3: the ESP with the GPG keys is on a USB stick
+	# and slow sticks can miss the ugrd mount_timeout otherwise.
+	cmdline="root=UUID=${root_uuid} rootfstype=btrfs rootflags=subvol=activeroot rootdelay=5 initrd=\\\\EFI\\\\BOOT\\\\ugrd.cpio rw loglevel=3 amd_iommu=on iommu=pt vfio-pci.ids=1002:1681,1002:1640 resume=UUID=${swap_uuid}"
 
 	try ./scripts/config --enable CONFIG_CMDLINE_BOOL
 	try ./scripts/config --set-str CONFIG_CMDLINE "$cmdline"
@@ -206,7 +213,7 @@ function kernel_script() {
 
 	# Nouveau driver for the host RTX 3090. The 3090 stays on the host as
 	# the primary display and is no longer part of any passthrough setup.
-	try ./scripts/config --enable CONFIG_DRM_NOUVEAU || die "Failed to set CONFIG_DRM_NOUVEAU=y"
+	try ./scripts/config --module CONFIG_DRM_NOUVEAU || die "Failed to set CONFIG_DRM_NOUVEAU=m"
 
 	# AMD display driver (amdgpu) - the driver for the Ryzen 9 9950X iGPU.
 	# The iGPU is passed through to the Windows 11 VM and is NOT used by the
@@ -526,6 +533,21 @@ function kernel_script() {
 	try ./scripts/config --enable CONFIG_SWAP || die "module do not exit CONFIG_SWAP"
 
 	# =============================================================================
+	# 24b. Power Management (hibernate + suspend)
+	# =============================================================================
+	# Hibernation (swsusp) is entirely built-in code - it needs NO modules:
+	# the resume device is a LUKS container on the NVMe disk, and NVMe +
+	# dm-crypt are already built-in above. What it needs is:
+	#   1. CONFIG_HIBERNATION=y (this section)
+	#   2. resume=UUID=<swap-uuid> on the kernel cmdline (section 2)
+	#   3. ugrd to open cryptswap and trigger resume before mounting root
+	#      (ugrd.fs.resume is already enabled in your ugrd config.toml)
+	try ./scripts/config --enable CONFIG_HIBERNATION || die "module do not exit CONFIG_HIBERNATION"
+	# CONFIG_SUSPEND gives you regular S3 sleep (echo mem > /sys/power/state)
+	# alongside hibernate; harmless to have both.
+	try ./scripts/config --enable CONFIG_SUSPEND || die "module do not exit CONFIG_SUSPEND"
+
+	# =============================================================================
 	# 25. Cgroups (managing many VMs)
 	# =============================================================================
 	try ./scripts/config --enable CONFIG_CGROUPS || die "module do not exit CONFIG_CGROUPS"
@@ -720,5 +742,21 @@ function kernel_script() {
 	#   6. Steam/Proton also needs 32-bit userspace libraries, not just the
 	#      kernel's IA32_EMULATION. ABI_X86="32 64" is already in make.conf,
 	#      so Portage builds 32-bit variants of mesa/audio/etc.
+	#
+	#   7. Hibernate userspace (kernel + ugrd side is already done):
+	#      - ugrd: "ugrd.fs.resume" module + late_resume=true are already in
+	#        /etc/ugrd/config.toml, and resume=UUID= is on the embedded
+	#        cmdline. Verify after boot: cat /sys/power/resume shows the
+	#        major:minor of /dev/mapper/cryptswap.
+	#      - Install a hibernate frontend: emerge sys-power/hibernate-script
+	#        (handles screen locking, sync, service stopping), or minimal:
+	#            # lock your DWL session first (swaylock), then:
+	#            echo disk > /sys/power/state
+	#      - Flow at resume: ugrd mounts /efi, asks for the GPG passphrase
+	#        (both keyfiles), opens cryptroot + cryptswap, then the kernel
+	#        restores the hibernation image INSTEAD of a normal boot.
+	#      - Tuning: /sys/power/image_size (default ~2/5 of RAM) sets the
+	#        target image size; the compressor shrinks below it if needed.
+	#        98G swap > 96G RAM, so hibernate always fits.
 	# =============================================================================
 }
