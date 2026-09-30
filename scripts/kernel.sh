@@ -213,7 +213,7 @@ function kernel_script() {
 
 	# Nouveau driver for the host RTX 3090. The 3090 stays on the host as
 	# the primary display and is no longer part of any passthrough setup.
-	try ./scripts/config --module CONFIG_DRM_NOUVEAU || die "Failed to set CONFIG_DRM_NOUVEAU=m"
+	try ./scripts/config --enable CONFIG_DRM_NOUVEAU || die "Failed to set CONFIG_DRM_NOUVEAU=y"
 
 	# AMD display driver (amdgpu) - the driver for the Ryzen 9 9950X iGPU.
 	# The iGPU is passed through to the Windows 11 VM and is NOT used by the
