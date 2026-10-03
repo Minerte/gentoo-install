@@ -128,6 +128,7 @@ media-sound/lame frontend
 media-sound/mpg123-base ipv6
 media-sound/pulseaudio-daemon alsa-plugin asyncns gdbm glib webrtc-aec
 media-video/ffmpeg bzip2 dav1d drm fontconfig gnutls gpl libass truetype xml
+media-video/pipewire sound-server pipewire-alsa
 
 # net-libs/*
 net-libs/gnutls cxx openssl post-quantum tls-heartbeat
