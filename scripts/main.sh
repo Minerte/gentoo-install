@@ -110,11 +110,10 @@ SELINUX=permissive
 SELINUXTYPE=targeted
 EOF
 
+	sleep 5
     einfo "Relabeling filesystem contexts for SELinux"
     try rlpkg -a -r
-
-    einfo "Rebuilding OpenRC dependency cache"
-    try rc-depend -u
+	sleep 5
 
     echo "Set root password"
     try passwd
