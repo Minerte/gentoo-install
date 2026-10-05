@@ -144,8 +144,8 @@ net-misc/dhcpcd embedded ipv6
 net-misc/iputils arping caps filecaps suid
 net-misc/modemmanager introspection mbim qmi qrtr
 net-misc/netifrc dhcp
-net-misc/networkmanager audit concheck introspection modemmanager nss ppp wext wifi
-net-misc/openssh audit seccomp
+net-misc/networkmanager concheck introspection modemmanager nss ppp wext wifi
+net-misc/openssh seccomp
 net-misc/rsync iconv xxhash
 net-misc/wget pcre
 
@@ -166,19 +166,16 @@ sys-apps/kmod lzma
 sys-apps/less pcre
 sys-apps/man-db manpager seccomp
 sys-apps/net-tools arp hostname ipv6
-sys-apps/openrc audit netifrc sysvinit
+sys-apps/openrc netifrc sysvinit
 sys-apps/pciutils kmod
-sys-apps/policycoreutils audit
 sys-apps/portage ipc native-extensions rsync-verify
 sys-apps/sandbox nnp
-sys-apps/shadow audit
 sys-apps/systemd-utils kmod sysctl tmpfiles
 sys-apps/texinfo standalone
-sys-apps/util-linux audit caps cramfs hardlink logger su suid
+sys-apps/util-linux caps cramfs hardlink logger su suid
 
 # sys-auth/*
 sys-auth/pambase caps nullok passwdqc yescrypt
-sys-auth/passwdqc audit
 sys-auth/seatd builtin server
 
 # sys-devel/*
@@ -198,15 +195,14 @@ sys-kernel/linux-firmware initramfs redistributable
 # sys-libs/*
 sys-libs/binutils-libs cet
 sys-libs/gdbm berkdb
-sys-libs/glibc audit caps cet multiarch ssp stack-realign static-libs
+sys-libs/glibc caps cet multiarch ssp stack-realign static-libs
 sys-libs/libsepol static-libs
 sys-libs/libxcrypt compat system
 sys-libs/ncurses cxx stack-realign tinfo
-sys-libs/pam audit
 sys-libs/slang pcre
 
 sys-process/audit python
-sys-process/cronie anacron audit inotify
+sys-process/cronie anacron inotify
 sys-process/procps kill
 
 virtual/pkgconfig native-symlinks
