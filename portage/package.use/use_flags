@@ -62,6 +62,7 @@ sys-apps/portage ipc native-extensions rsync-verify
 sys-apps/sandbox nnp
 sys-apps/systemd-utils kmod tmpfiles
 sys-apps/util-linux caps logger su suid
+sys-apps/elfix xtpax
 sys-auth/pambase caps nullok yescrypt
 sys-auth/seatd builtin server
 sys-devel/binutils cet plugins
@@ -74,6 +75,7 @@ sys-libs/binutils-libs cet
 sys-libs/glibc caps cet multiarch ssp stack-realign static-libs
 sys-libs/libxcrypt system
 sys-libs/ncurses cxx tinfo
+sys-libs/libsepol static-libs
 sys-process/audit python
 sys-process/cronie anacron inotify
 sys-process/procps kill
@@ -91,3 +93,7 @@ dev-lua/luv lua_single_target_luajit -lua_single_target_lua5-4
 dev-lua/mpack lua_targets_luajit lua_single_target_luajit
 dev-lua/lpeg lua_targets_luajit lua_single_target_luajit
 dev-lua/lua-cjson internal-fpconv
+
+# Misc
+dev-python/pypax xtpax
+dev-libs/nettle gmp
