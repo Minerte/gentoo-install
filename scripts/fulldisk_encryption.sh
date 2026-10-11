@@ -76,8 +76,6 @@ function disk_format() {
             --hash sha512 \
             --pbkdf argon2id \
             --iter-time 2000 \
-			--pbkdf-memory 2097152 \ # Limit 2 Gib RAM
-			--pbkdf-parallel 4 \ # Limit 4 CPU-Threads
             --batch-mode \
             "$SWAP_PART" \
                 || die "Could not create luks on $SWAP_PART"
@@ -114,8 +112,6 @@ function disk_format() {
             --hash sha512 \
             --pbkdf argon2id \
             --iter-time 4000 \
-			--pbkdf-memory 4194304 \ # Limit 4 Gib RAM
-			--pbkdf-parallel 4 \ # Limit 4 CPU-Threads
             --batch-mode \
             "$ROOT_PART" \
                 || die "Could not create luks on $ROOT_PART"
