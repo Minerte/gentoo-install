@@ -1,7 +1,4 @@
-app-accessibility/at-spi2-core introspection
-app-admin/sudo secure-path sendmail
-
-# app-alternatives/*
+# Alternatives
 app-alternatives/awk gawk
 app-alternatives/bc gnu
 app-alternatives/bzip2 lbzip2
@@ -13,208 +10,84 @@ app-alternatives/ninja reference
 app-alternatives/sh bash
 app-alternatives/tar gnu
 app-alternatives/yacc bison
+app-crypt/gnupg alternatives bzip2 tofu
 
-# app-arch/*
-app-arch/gzip pic
-app-arch/libarchive bzip2 e2fsprogs iconv lzma
-app-arch/unzip bzip2
-app-arch/xz-utils extra-filters
-app-arch/zip bzip2
-app-arch/zstd lzma
+# Editors / VCS
+dev-vcs/git gpg
 
-app-crypt/gnupg alternatives bzip2 smartcard tofu
-app-crypt/libb2 openmp
-app-crypt/pinentry caps
-
-app-editors/nano spell
-app-editors/neovim nvimpager
-
-app-misc/pax-utils caps
-
-app-portage/gemato gpg
-app-portage/portage-utils openmp qmanifest
-
-app-shells/bash net pgo
-app-shells/bash-completion eselect
-
-app-text/texlive-core luajittex
-
-dev-cpp/eigen openmp
-
-# dev-lang/*
-dev-lang/lua deprecated
-dev-lang/perl gdbm
-dev-lang/python ensurepip gdbm sqlite
-dev-lang/python-exec native-symlinks
-dev-lang/rust-bin clippy doc rust-analyzer rustfmt
-dev-lang/swig pcre
-
-# dev-libs/*
-dev-libs/elfutils bzip2 debuginfod libarchive lzma
-dev-libs/glib elf introspection mime
-dev-libs/gmp asm cpudetection cxx pic
-dev-libs/json-glib introspection
-dev-libs/leancrypto asm
-dev-libs/libevent clock-gettime
-dev-libs/libffi exec-static-trampoline
-dev-libs/libgcrypt asm getentropy
-dev-libs/libgit2 ssh
-dev-libs/libnl debug
-dev-libs/libpcre bzip2 cxx
-dev-libs/libpcre2 bzip2 pcre16 pcre32
-dev-libs/nettle asm gmp
-dev-libs/openssl asm quic
-dev-libs/ptexenc iconv
-dev-libs/simdjson all-impls
-
-app-editors/neovim lua_single_target_luajit
-
-# dev-libs/*
-dev-lua/luv lua_single_target_luajit -lua_single_target_lua5-4
-dev-lua/mpack lua_targets_luajit lua_single_target_luajit
-dev-lua/lpeg lua_targets_luajit lua_single_target_luajit
-dev-lua/lua-cjson internal-fpconv
-
-dev-perl/File-HomeDir xdg
-dev-perl/List-MoreUtils xs
-dev-perl/Ref-Util xs
-
-# dev-python/*
-dev-python/ensurepip-pip test-rust
-dev-python/markupsafe native-extensions
-dev-python/pillow jpeg
-dev-python/pygobject cairo
-dev-python/pypax xtpax
-dev-python/requests test-rust
-
-dev-texlive/texlive-basic luajittex
-
-dev-util/pkgconf native-symlinks
-
-dev-vcs/git gpg iconv pcre perl rust safe-directory webdav
-
+# Wayland stack (DWL from git pulls wlroots; X flag = Xwayland support)
 gui-apps/foot grapheme-clustering
-gui-libs/gtk introspection
-gui-libs/wlroots drm libinput x11-backend
+gui-libs/wlroots drm libinput X
 
-# llvm-*
-llvm-core/clang extra pie static-analyzer
+# Toolchain (needed to build Firefox with system-* libs; keep hardened/cet intact)
+llvm-core/clang extra pie
 llvm-core/clang-common cet
-llvm-core/llvm binutils-plugin libffi
-llvm-runtimes/clang-runtime compiler-rt openmp sanitize
-llvm-runtimes/compiler-rt atomic-builtins clang
-llvm-runtimes/compiler-rt-sanitizers asan cfi clang ctx-profile dfsan gwp-asan hwasan libfuzzer lsan memprof msan nsan profile rtsan safestack scudo tsan ubsan xray
-llvm-runtimes/libclc spirv
+llvm-runtimes/clang-runtime compiler-rt openmp
+dev-libs/glib introspection
+virtual/rust rust-bin
 
-# media-*
-media-libs/dav1d 8bit 10bit asm
-media-libs/fcft harfbuzz libutf8proc
-media-libs/flac cxx
-media-libs/freetype adobe-cff bzip2 cleartype-hinting harfbuzz png
-media-libs/gd jpeg png
-media-libs/graphene introspection
-media-libs/harfbuzz cairo glib graphite icu introspection truetype
-media-libs/libaom examples
-media-libs/libass fontconfig
+# Media stack (Firefox system-* deps + PipeWire as sound server)
+media-libs/freetype bzip2 harfbuzz png
+media-libs/harfbuzz glib icu introspection
 media-libs/libepoxy X
 media-libs/libglvnd X
-media-libs/libpulse asyncns glib
 media-libs/libvpx highbitdepth postproc
 media-libs/libwebp gif jpeg png
 media-libs/mesa llvm opengl proprietary-codecs X
 media-libs/tiff cxx
-media-plugins/alsa-plugins mix pulseaudio usb_stream
-media-sound/lame frontend
-media-sound/mpg123-base ipv6
-media-sound/pulseaudio-daemon alsa-plugin asyncns gdbm glib webrtc-aec
-media-video/ffmpeg bzip2 dav1d drm fontconfig gnutls gpl libass truetype xml
 media-video/pipewire sound-server pipewire-alsa
 
-# net-libs/*
-net-libs/gnutls cxx openssl post-quantum tls-heartbeat
-net-libs/libmicrohttpd epoll eventfd thread-names
-net-libs/libqmi mbim qrtr
-net-libs/ngtcp2 openssl
-net-libs/nodejs icu inspector npm snapshot system-ssl
-
-# net-misc/*
-net-misc/chrony caps cmdmon nettle nts phc refclock rtc seccomp sechash
-net-misc/curl adns alt-svc ftp hsts http2 http3 httpsrr imap openssl pop3 psl quic smtp tftp websockets
-net-misc/dhcpcd embedded ipv6
-net-misc/iputils arping caps filecaps suid
-net-misc/modemmanager introspection mbim qmi qrtr
-net-misc/netifrc dhcp
-net-misc/networkmanager concheck introspection modemmanager nss ppp wext wifi
-net-misc/openssh seccomp
-net-misc/rsync iconv xxhash
-net-misc/wget pcre
-
-net-wireless/wpa_supplicant ap fils mbo mesh
-
+# SELinux policy
 sec-policy/selinux-base ubac unconfined unknown-perms
 sec-policy/selinux-base-policy unconfined
 
-# sys-apps/*
+# Networking (NetworkManager on OpenRC)
+net-misc/chrony caps cmdmon nts rtc sechash
+net-misc/curl adns hsts http2 openssl psl
+net-misc/iputils caps filecaps suid
+net-misc/networkmanager concheck introspection nss wifi
+net-misc/openssh seccomp
+net-misc/rsync iconv xxhash
+net-wireless/wpa_supplicant ap fils mbo
+
+# Base system 
+app-portage/gemato gpg
 sys-apps/coreutils caps openssl
-sys-apps/elfix xtpax
 sys-apps/file bzip2 seccomp
-sys-apps/gawk mpfr
-sys-apps/grep egrep-fgrep pcre
-sys-apps/iproute2 caps iptables
-sys-apps/kbd bzip2
-sys-apps/kmod lzma
-sys-apps/less pcre
+sys-apps/grep pcre
+sys-apps/iproute2 caps
 sys-apps/man-db manpager seccomp
-sys-apps/net-tools arp hostname ipv6
 sys-apps/openrc netifrc sysvinit
-sys-apps/pciutils kmod
 sys-apps/portage ipc native-extensions rsync-verify
 sys-apps/sandbox nnp
-sys-apps/systemd-utils kmod sysctl tmpfiles
-sys-apps/texinfo standalone
-sys-apps/util-linux caps cramfs hardlink logger su suid
-
-# sys-auth/*
-sys-auth/pambase caps nullok passwdqc yescrypt
+sys-apps/systemd-utils kmod tmpfiles
+sys-apps/util-linux caps logger su suid
+sys-auth/pambase caps nullok yescrypt
 sys-auth/seatd builtin server
-
-# sys-devel/*
-sys-devel/binutils cet debuginfod plugins
-sys-devel/binutils-config native-symlinks
-sys-devel/gcc cet cxx default-stack-clash-protection default-znow fortran openmp pie sanitize ssp
-sys-devel/gcc-config cc-wrappers native-symlinks
-sys-devel/gettext cxx openmp
-
-# sys-fs/*
+sys-devel/binutils cet plugins
+sys-devel/gcc cet cxx default-stack-clash-protection default-znow openmp pie sanitize ssp
 sys-fs/btrfs-progs convert man
 sys-fs/cryptsetup argon2 openssl
 sys-fs/dosfstools iconv
-
 sys-kernel/linux-firmware initramfs redistributable
-
-# sys-libs/*
 sys-libs/binutils-libs cet
-sys-libs/gdbm berkdb
 sys-libs/glibc caps cet multiarch ssp stack-realign static-libs
-sys-libs/libsepol static-libs
-sys-libs/libxcrypt compat system
-sys-libs/ncurses cxx stack-realign tinfo
-sys-libs/slang pcre
-
+sys-libs/libxcrypt system
+sys-libs/ncurses cxx tinfo
 sys-process/audit python
 sys-process/cronie anacron inotify
 sys-process/procps kill
 
-virtual/pkgconfig native-symlinks
-
+# Firefox
 www-client/firefox clang jumbo-build llvm_slot_21 system-av1 system-harfbuzz system-icu system-jpeg system-libevent system-libvpx system-webp telemetry
 
-# x11-*
-x11-base/xorg-server xorg
+# X libs (Xwayland support for Firefox/Steam)
 x11-libs/cairo glib
-x11-libs/gdk-pixbuf introspection
-x11-libs/gtk+ introspection
-x11-libs/libSM uuid
-x11-libs/libXfont2 bzip2
+x11-libs/gdk-pixbuf jpeg png
 x11-libs/libxcb xkb
-x11-libs/pango introspection
+
+# Lua
+dev-lua/luv lua_single_target_luajit -lua_single_target_lua5-4
+dev-lua/mpack lua_targets_luajit lua_single_target_luajit
+dev-lua/lpeg lua_targets_luajit lua_single_target_luajit
+dev-lua/lua-cjson internal-fpconv
