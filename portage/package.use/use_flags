@@ -23,14 +23,17 @@ gui-libs/wlroots drm libinput X
 llvm-core/clang extra pie
 llvm-core/clang-common cet
 llvm-runtimes/clang-runtime compiler-rt openmp
+llvm-runtimes/libclc spirv
 dev-libs/glib introspection
 virtual/rust rust-bin
 
 # Media stack (Firefox system-* deps + PipeWire as sound server)
+media-libs/fcft harfbuzz
 media-libs/freetype bzip2 harfbuzz png
-media-libs/harfbuzz glib icu introspection
+media-libs/harfbuzz glib icu introspection truetype
 media-libs/libepoxy X
 media-libs/libglvnd X
+media-libs/libpulse glib
 media-libs/libvpx highbitdepth postproc
 media-libs/libwebp gif jpeg png
 media-libs/mesa llvm opengl proprietary-codecs X
@@ -94,6 +97,14 @@ dev-lua/mpack lua_targets_luajit lua_single_target_luajit
 dev-lua/lpeg lua_targets_luajit lua_single_target_luajit
 dev-lua/lua-cjson internal-fpconv
 
-# Misc
+app-editors/neovim lua_single_target_luajit
+
+# Python
+dev-lang/python sqlite
 dev-python/pypax xtpax
+
+# Misc
 dev-libs/nettle gmp
+net-misc/chrony nettle
+net-libs/ngtcp2 openssl
+x11-base/xorg-server xorg
