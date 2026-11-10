@@ -14,7 +14,7 @@ function kernel_script() {
 	#   - OpenRC, seatd (no elogind), NetworkManager, PipeWire
 	#   - SELinux, targeted policy
 	#   - DWL (wlroots) + XWayland, gaming via Steam/Proton
-	#   - Kernel version: 6.18.52 (gentoo-sources)
+	#   - Kernel version: 6.18.* (gentoo-sources)
 	#
 	# Use-case:
 	#   - BTRFS root filesystem, fully encrypted (dm-crypt + GPG keys via ugrd)
